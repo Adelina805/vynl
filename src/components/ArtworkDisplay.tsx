@@ -14,7 +14,6 @@ export default function ArtworkDisplay({
   onRegenerate,
   onReset,
 }: ArtworkDisplayProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [audioError, setAudioError] = useState(false);
@@ -42,27 +41,29 @@ export default function ArtworkDisplay({
   }
 
   function handleDownload() {
-    const blob = new Blob([result.svg], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const safeTitle = result.track.title
       .replace(/[^a-z0-9]/gi, "_")
       .toLowerCase()
       .slice(0, 40);
-    a.href = url;
-    a.download = `vynl_${safeTitle}_${result.style}.svg`;
+    a.href = result.imageUrl;
+    a.download = `vynl_${safeTitle}_${result.style}.jpg`;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
     a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
     <div className="w-full animate-fade-in">
       {/* Artwork canvas */}
-      <div
-        ref={containerRef}
-        className="w-full aspect-square bg-void border border-ash overflow-hidden"
-        dangerouslySetInnerHTML={{ __html: result.svg }}
-      />
+      <div className="w-full aspect-square bg-void border border-ash overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={result.imageUrl}
+          alt={`${result.track.title} — ${result.style}`}
+          className="w-full h-full object-cover"
+        />
+      </div>
 
       {/* Interpretation */}
       {result.interpretation && (
@@ -89,13 +90,11 @@ export default function ArtworkDisplay({
             className="flex items-center justify-center w-7 h-7 border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors shrink-0"
           >
             {playing ? (
-              /* pause icon */
               <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
                 <rect x="0" y="0" width="3" height="12" />
                 <rect x="7" y="0" width="3" height="12" />
               </svg>
             ) : (
-              /* play icon */
               <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
                 <polygon points="0,0 10,6 0,12" />
               </svg>
@@ -126,7 +125,7 @@ export default function ArtworkDisplay({
             onClick={handleDownload}
             className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors"
           >
-            .svg
+            .jpg
           </button>
           <button
             onClick={onRegenerate}

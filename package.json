@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
+    "@fal-ai/client": "^1.9.5",
     "next": "^16.2.3",
     "react": "^18",
     "react-dom": "^18"

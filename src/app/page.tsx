@@ -5,12 +5,11 @@ import TrackInput from "@/components/TrackInput";
 import TrackCard from "@/components/TrackCard";
 import StyleSelector from "@/components/StyleSelector";
 import ArtworkDisplay from "@/components/ArtworkDisplay";
-import { parseGenerationOutput } from "@/lib/utils";
 import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types";
 
 // ── Generating state UI ──────────────────────────────────────────────────────
 
-function GeneratingView({ progress }: { progress: string }) {
+function GeneratingView() {
   return (
     <div className="w-full aspect-square bg-void border border-ash flex flex-col items-center justify-center gap-6">
       <div className="space-y-1 w-48">
@@ -28,11 +27,6 @@ function GeneratingView({ progress }: { progress: string }) {
       <div className="text-xs font-mono text-mist uppercase tracking-widest">
         Rendering
       </div>
-      {progress && (
-        <div className="text-xs font-mono text-ash-2 max-w-xs text-center leading-relaxed px-4 line-clamp-3">
-          {progress.slice(-160)}
-        </div>
-      )}
     </div>
   );
 }
@@ -42,13 +36,11 @@ function GeneratingView({ progress }: { progress: string }) {
 export default function HomePage() {
   const [state, setState] = useState<AppState>({ phase: "idle" });
   const [selectedStyle, setSelectedStyle] = useState<ArtStyle | null>(null);
-  const [streamProgress, setStreamProgress] = useState("");
 
   // ── Extract track ──────────────────────────────────────────────────────────
 
   const handleExtract = useCallback(async (url: string) => {
     setState({ phase: "extracting" });
-    setStreamProgress("");
 
     try {
       const res = await fetch("/api/extract", {
@@ -74,7 +66,6 @@ export default function HomePage() {
   const handleGenerate = useCallback(
     async (track: SpotifyTrack, style: ArtStyle) => {
       setState({ phase: "generating", track, style });
-      setStreamProgress("");
 
       try {
         const res = await fetch("/api/generate", {
@@ -83,46 +74,16 @@ export default function HomePage() {
           body: JSON.stringify({ track, style }),
         });
 
-        if (!res.ok || !res.body) {
-          setState({
-            phase: "error",
-            message: "Generation request failed.",
-          });
-          return;
-        }
+        const data = await res.json();
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulated = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          accumulated += decoder.decode(value, { stream: true });
-          setStreamProgress(accumulated);
-        }
-
-        // Check for an error tag in the stream
-        const errorMatch = accumulated.match(/<error>([\s\S]*?)<\/error>/);
-        if (errorMatch) {
-          setState({ phase: "error", message: errorMatch[1] });
-          return;
-        }
-
-        const { svg, interpretation } = parseGenerationOutput(accumulated);
-
-        if (!svg) {
-          setState({
-            phase: "error",
-            message:
-              "Could not parse SVG from the response. The model may have exceeded its output length — try a simpler style or regenerate.",
-          });
+        if (!res.ok) {
+          setState({ phase: "error", message: data.error ?? "Generation failed." });
           return;
         }
 
         const result: GenerationResult = {
-          svg,
-          interpretation: interpretation ?? "",
+          imageUrl: data.imageUrl,
+          interpretation: data.interpretation ?? "",
           style,
           track,
         };
@@ -140,7 +101,6 @@ export default function HomePage() {
   const handleReset = useCallback(() => {
     setState({ phase: "idle" });
     setSelectedStyle(null);
-    setStreamProgress("");
   }, []);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -190,7 +150,7 @@ export default function HomePage() {
                 onReset={handleReset}
               />
             ) : state.phase === "generating" ? (
-              <GeneratingView progress={streamProgress} />
+              <GeneratingView />
             ) : (
               /* Placeholder canvas */
               <div className="w-full aspect-square bg-void-2 border border-ash flex items-center justify-center">
@@ -282,7 +242,7 @@ export default function HomePage() {
             {/* Generating indicator in sidebar */}
             {state.phase === "generating" && (
               <div className="text-xs font-mono text-mist animate-pulse-slow">
-                Generating artwork for{" "}
+                Generating{" "}
                 <span className="text-mist-2">
                   {(state as { style: ArtStyle }).style.replace(/-/g, " ")}
                 </span>

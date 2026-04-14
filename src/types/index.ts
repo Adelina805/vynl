@@ -69,7 +69,7 @@ export interface AudioFeatures {
 }
 
 export interface GenerationResult {
-  svg: string;
+  imageUrl: string;
   interpretation: string;
   style: ArtStyle;
   track: SpotifyTrack;
