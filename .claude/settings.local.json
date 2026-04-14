@@ -15,7 +15,8 @@
       "Bash(vercel --yes --prod)",
       "Bash(find node_modules/@anthropic-ai/sdk -name \"*.d.ts\" -exec grep -l \"thinking\" {} \\\\;)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }
