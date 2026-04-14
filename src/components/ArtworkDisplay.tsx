@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import type { GenerationResult } from "@/types";
 
 interface ArtworkDisplayProps {
@@ -15,6 +15,31 @@ export default function ArtworkDisplay({
   onReset,
 }: ArtworkDisplayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [audioError, setAudioError] = useState(false);
+
+  const previewUrl = result.track.previewUrl;
+
+  useEffect(() => {
+    if (!previewUrl || audioError) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = 0.6;
+    audio.play().then(() => setPlaying(true)).catch(() => setAudioError(true));
+    return () => { audio.pause(); };
+  }, [previewUrl, audioError]);
+
+  function togglePlay() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      audio.play().then(() => setPlaying(true)).catch(() => setAudioError(true));
+    }
+  }
 
   function handleDownload() {
     const blob = new Blob([result.svg], { type: "image/svg+xml" });
@@ -45,6 +70,40 @@ export default function ArtworkDisplay({
           <p className="text-xs font-mono text-mist leading-relaxed">
             {result.interpretation}
           </p>
+        </div>
+      )}
+
+      {/* Audio preview */}
+      {previewUrl && !audioError && (
+        <div className="mt-4 flex items-center gap-3">
+          <audio
+            ref={audioRef}
+            src={previewUrl}
+            loop={false}
+            onEnded={() => setPlaying(false)}
+            onError={() => setAudioError(true)}
+          />
+          <button
+            onClick={togglePlay}
+            aria-label={playing ? "Pause preview" : "Play preview"}
+            className="flex items-center justify-center w-7 h-7 border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors shrink-0"
+          >
+            {playing ? (
+              /* pause icon */
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
+                <rect x="0" y="0" width="3" height="12" />
+                <rect x="7" y="0" width="3" height="12" />
+              </svg>
+            ) : (
+              /* play icon */
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
+                <polygon points="0,0 10,6 0,12" />
+              </svg>
+            )}
+          </button>
+          <span className="text-xs font-mono text-ash-2 uppercase tracking-wider">
+            {playing ? "preview" : "30s preview"}
+          </span>
         </div>
       )}
 

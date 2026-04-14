@@ -7,7 +7,15 @@
       "Bash(npm audit:*)",
       "Bash(gh auth:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(gh repo:*)",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel --yes --prod)",
+      "Bash(find node_modules/@anthropic-ai/sdk -name \"*.d.ts\" -exec grep -l \"thinking\" {} \\\\;)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
