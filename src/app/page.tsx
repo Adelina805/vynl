@@ -5,6 +5,7 @@ import TrackInput from "@/components/TrackInput";
 import TrackCard from "@/components/TrackCard";
 import StyleSelector from "@/components/StyleSelector";
 import ArtworkDisplay from "@/components/ArtworkDisplay";
+import ThemeToggle from "@/components/ThemeToggle";
 import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types";
 
 // ── Generating state UI ──────────────────────────────────────────────────────
@@ -131,9 +132,12 @@ export default function HomePage() {
         >
           VYNL
         </button>
-        <span className="font-mono text-xs text-mist">
-          music → visual art
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xs text-mist">
+            music → visual art
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Main layout */}
@@ -155,10 +159,10 @@ export default function HomePage() {
               /* Placeholder canvas */
               <div className="w-full aspect-square bg-void-2 border border-ash flex items-center justify-center">
                 <div className="text-center space-y-3 px-8">
-                  <div className="font-mono text-xs text-ash-2 uppercase tracking-widest">
+                  <div className="font-mono text-xs text-mist uppercase tracking-widest">
                     Every song has a visual identity
                   </div>
-                  <div className="font-mono text-xs text-ash-2">
+                  <div className="font-mono text-xs text-mist">
                     Paste a Spotify URL to begin
                   </div>
                 </div>

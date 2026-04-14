@@ -53,10 +53,10 @@ export default function TrackCard({ track }: TrackCardProps) {
           <div className="font-mono text-mist text-xs mt-0.5 truncate">
             {track.artist}
           </div>
-          <div className="font-mono text-ash-2 text-xs mt-0.5 truncate">
+          <div className="font-mono text-mist text-xs mt-0.5 truncate">
             {track.album}
             {track.releaseYear && (
-              <span className="ml-2 text-ash-2">({track.releaseYear})</span>
+              <span className="ml-2">({track.releaseYear})</span>
             )}
           </div>
         </a>

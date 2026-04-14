@@ -100,7 +100,7 @@ export default function ArtworkDisplay({
               </svg>
             )}
           </button>
-          <span className="text-xs font-mono text-ash-2 uppercase tracking-wider">
+          <span className="text-xs font-mono text-mist uppercase tracking-wider">
             {playing ? "preview" : "30s preview"}
           </span>
         </div>
@@ -115,7 +115,7 @@ export default function ArtworkDisplay({
           <div className="text-xs font-mono text-mist truncate">
             {result.track.artist}
           </div>
-          <div className="text-xs font-mono text-ash-2 mt-0.5 uppercase tracking-wider">
+          <div className="text-xs font-mono text-mist mt-0.5 uppercase tracking-wider">
             {result.style.replace(/-/g, " ")}
           </div>
         </div>

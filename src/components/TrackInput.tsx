@@ -27,7 +27,7 @@ export default function TrackInput({ onExtract, isLoading }: TrackInputProps) {
           disabled={isLoading}
           className="
             flex-1 min-w-0
-            bg-void-3 border border-ash text-cream placeholder-ash-2
+            bg-void-3 border border-ash text-cream placeholder-mist
             px-4 py-3 text-sm font-mono
             focus:outline-none focus:border-mist
             disabled:opacity-40 disabled:cursor-not-allowed
