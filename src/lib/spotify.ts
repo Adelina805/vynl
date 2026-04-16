@@ -102,7 +102,6 @@ export async function fetchTrack(trackId: string): Promise<SpotifyTrack> {
     explicit: track.explicit ?? false,
     albumArt,
     spotifyUrl: track.external_urls?.spotify ?? `https://open.spotify.com/track/${trackId}`,
-    previewUrl: track.preview_url ?? null,
     audioFeatures,
   };
 }

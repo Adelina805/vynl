@@ -55,7 +55,6 @@ export interface SpotifyTrack {
   explicit: boolean;
   albumArt: string | null;
   spotifyUrl: string;
-  previewUrl: string | null;
   audioFeatures: AudioFeatures | null;
 }
 

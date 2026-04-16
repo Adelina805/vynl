@@ -1,67 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import TrackInput from "@/components/TrackInput";
 import TrackCard from "@/components/TrackCard";
 import StyleSelector from "@/components/StyleSelector";
 import ArtworkDisplay from "@/components/ArtworkDisplay";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types";
-
-// ── Track preview player ─────────────────────────────────────────────────────
-
-// Always rendered — disabled state when Spotify omits preview_url
-function TrackPreview({ previewUrl }: { previewUrl: string | null }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-
-  useEffect(() => {
-    return () => { audioRef.current?.pause(); };
-  }, []);
-
-  function toggle() {
-    if (!previewUrl) return;
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) {
-      audio.pause();
-      setPlaying(false);
-    } else {
-      audio.volume = 0.7;
-      audio.play().then(() => setPlaying(true)).catch(() => {});
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      {previewUrl && (
-        <audio ref={audioRef} src={previewUrl} onEnded={() => setPlaying(false)} />
-      )}
-      <button
-        onClick={toggle}
-        disabled={!previewUrl}
-        aria-label={playing ? "Pause preview" : "Play 30s preview"}
-        className={`w-8 h-8 flex items-center justify-center border border-ash text-mist transition-colors shrink-0 ${
-          previewUrl ? "hover:border-mist hover:text-mist-2" : "opacity-30 cursor-not-allowed"
-        }`}
-      >
-        {playing ? (
-          <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
-            <rect x="0" y="0" width="3" height="12" />
-            <rect x="7" y="0" width="3" height="12" />
-          </svg>
-        ) : (
-          <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
-            <polygon points="0,0 10,6 0,12" />
-          </svg>
-        )}
-      </button>
-      <span className="text-xs font-mono text-mist">
-        {!previewUrl ? "no preview available" : playing ? "playing…" : "30s preview"}
-      </span>
-    </div>
-  );
-}
 
 // ── Generating state UI ──────────────────────────────────────────────────────
 
@@ -282,11 +227,10 @@ export default function HomePage() {
               <TrackInput onExtract={handleExtract} isLoading={isExtracting} />
             </div>
 
-            {/* Track card + preview player */}
+            {/* Track card */}
             {currentTrack && (
-              <div className="animate-fade-in space-y-3">
+              <div className="animate-fade-in">
                 <TrackCard track={currentTrack} />
-                <TrackPreview previewUrl={currentTrack.previewUrl} />
               </div>
             )}
 
