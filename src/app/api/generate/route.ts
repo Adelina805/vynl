@@ -57,13 +57,12 @@ export async function POST(request: NextRequest) {
     const interpretation = interpretationMatch?.[1].trim() ?? "";
     const imagePrompt = imagePromptMatch[1].trim();
 
-    // Step 2: fal.ai FLUX generates the image (~5-10s, ~$0.025)
-    const falResult = await fal.subscribe("fal-ai/flux/dev", {
+    // Step 2: fal.ai FLUX Schnell generates the image (~2-4s, ~$0.003)
+    const falResult = await fal.subscribe("fal-ai/flux/schnell", {
       input: {
         prompt: imagePrompt,
         image_size: "square_hd",
-        num_inference_steps: 28,
-        guidance_scale: 3.5,
+        num_inference_steps: 4,
         num_images: 1,
         enable_safety_checker: true,
       },
