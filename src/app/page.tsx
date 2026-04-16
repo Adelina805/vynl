@@ -118,7 +118,9 @@ export default function HomePage() {
   const isExtracting = state.phase === "extracting";
   const isGenerating = state.phase === "generating";
   const canGenerate =
-    state.phase === "extracted" && selectedStyle !== null && !isGenerating;
+    (state.phase === "extracted" || state.phase === "done") &&
+    selectedStyle !== null &&
+    !isGenerating;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -146,13 +148,7 @@ export default function HomePage() {
           {/* Left: artwork area */}
           <div className="space-y-4">
             {state.phase === "done" ? (
-              <ArtworkDisplay
-                result={state.result}
-                onRegenerate={() =>
-                  handleGenerate(state.result.track, state.result.style)
-                }
-                onReset={handleReset}
-              />
+              <ArtworkDisplay result={state.result} />
             ) : state.phase === "generating" ? (
               <GeneratingView />
             ) : (
@@ -193,9 +189,7 @@ export default function HomePage() {
               state.phase === "done") && (
               <div className="animate-fade-in">
                 <StyleSelector
-                  selected={
-                    state.phase === "done" ? state.result.style : selectedStyle
-                  }
+                  selected={selectedStyle}
                   onSelect={setSelectedStyle}
                   disabled={isGenerating}
                 />
@@ -203,14 +197,11 @@ export default function HomePage() {
             )}
 
             {/* Generate button */}
-            {state.phase === "extracted" && (
+            {(state.phase === "extracted" || state.phase === "done") && (
               <button
                 onClick={() =>
-                  canGenerate &&
-                  handleGenerate(
-                    (state as { track: SpotifyTrack }).track,
-                    selectedStyle!
-                  )
+                  canGenerate && currentTrack &&
+                  handleGenerate(currentTrack, selectedStyle!)
                 }
                 disabled={!canGenerate}
                 className="

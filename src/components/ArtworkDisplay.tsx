@@ -5,15 +5,9 @@ import type { GenerationResult } from "@/types";
 
 interface ArtworkDisplayProps {
   result: GenerationResult;
-  onRegenerate: () => void;
-  onReset: () => void;
 }
 
-export default function ArtworkDisplay({
-  result,
-  onRegenerate,
-  onReset,
-}: ArtworkDisplayProps) {
+export default function ArtworkDisplay({ result }: ArtworkDisplayProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [audioError, setAudioError] = useState(false);
@@ -40,17 +34,24 @@ export default function ArtworkDisplay({
     }
   }
 
-  function handleDownload() {
-    const a = document.createElement("a");
+  async function handleDownload() {
     const safeTitle = result.track.title
       .replace(/[^a-z0-9]/gi, "_")
       .toLowerCase()
       .slice(0, 40);
-    a.href = result.imageUrl;
-    a.download = `vynl_${safeTitle}_${result.style}.jpg`;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
+    const filename = `vynl_${safeTitle}_${result.style}.jpg`;
+    try {
+      const res = await fetch(result.imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(result.imageUrl, "_blank");
+    }
   }
 
   return (
@@ -120,26 +121,12 @@ export default function ArtworkDisplay({
           </div>
         </div>
 
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={handleDownload}
-            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors"
-          >
-            .jpg
-          </button>
-          <button
-            onClick={onRegenerate}
-            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors"
-          >
-            Regen
-          </button>
-          <button
-            onClick={onReset}
-            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors"
-          >
-            New
-          </button>
-        </div>
+        <button
+          onClick={handleDownload}
+          className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-ash text-mist hover:border-mist-2 hover:text-mist-2 transition-colors shrink-0"
+        >
+          Download
+        </button>
       </div>
     </div>
   );
