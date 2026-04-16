@@ -71,10 +71,11 @@ body {
 }
 
 /* ── Rendering animation blocks ─────────────────────────────────────────────*/
-@keyframes build-block {
-  0%   { opacity: 0.04; transform: scaleY(0.08); }
-  55%  { opacity: 0.28; transform: scaleY(1); }
-  100% { opacity: 0.06; transform: scaleY(0.3); }
+/* translateY: blocks float up and down. No scale — pure positional movement. */
+@keyframes float-block {
+  0%   { opacity: 0.02; transform: translateY(10px); }
+  50%  { opacity: 0.10; transform: translateY(-10px); }
+  100% { opacity: 0.02; transform: translateY(10px); }
 }
 
 @keyframes scan-line {

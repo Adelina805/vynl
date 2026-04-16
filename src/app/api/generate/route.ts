@@ -57,6 +57,11 @@ export async function POST(request: NextRequest) {
     const interpretation = interpretationMatch?.[1].trim() ?? "";
     const imagePrompt = imagePromptMatch[1].trim();
 
+    // Cost accounting for Claude Sonnet 4.6 ($3/M input, $15/M output)
+    const { input_tokens, output_tokens } = message.usage;
+    const claudeCost = (input_tokens / 1_000_000) * 3 + (output_tokens / 1_000_000) * 15;
+    const falCost = 0.003; // flux/schnell flat rate
+
     // Step 2: fal.ai FLUX Schnell generates the image (~2-4s, ~$0.003)
     const falResult = await fal.subscribe("fal-ai/flux/schnell", {
       input: {
@@ -76,7 +81,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return Response.json({ imageUrl, interpretation });
+    return Response.json({
+      imageUrl,
+      interpretation,
+      _cost: {
+        claudeInputTokens: input_tokens,
+        claudeOutputTokens: output_tokens,
+        claudeCost: +claudeCost.toFixed(5),
+        falCost,
+        total: +(claudeCost + falCost).toFixed(5),
+      },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return Response.json({ error: message }, { status: 500 });

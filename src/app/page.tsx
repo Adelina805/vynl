@@ -10,7 +10,8 @@ import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types
 
 // ── Track preview player ─────────────────────────────────────────────────────
 
-function TrackPreview({ previewUrl }: { previewUrl: string }) {
+// Always rendered — disabled state when Spotify omits preview_url
+function TrackPreview({ previewUrl }: { previewUrl: string | null }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -19,6 +20,7 @@ function TrackPreview({ previewUrl }: { previewUrl: string }) {
   }, []);
 
   function toggle() {
+    if (!previewUrl) return;
     const audio = audioRef.current;
     if (!audio) return;
     if (playing) {
@@ -32,11 +34,16 @@ function TrackPreview({ previewUrl }: { previewUrl: string }) {
 
   return (
     <div className="flex items-center gap-3">
-      <audio ref={audioRef} src={previewUrl} onEnded={() => setPlaying(false)} />
+      {previewUrl && (
+        <audio ref={audioRef} src={previewUrl} onEnded={() => setPlaying(false)} />
+      )}
       <button
         onClick={toggle}
+        disabled={!previewUrl}
         aria-label={playing ? "Pause preview" : "Play 30s preview"}
-        className="w-8 h-8 flex items-center justify-center border border-ash text-mist hover:border-mist hover:text-mist-2 transition-colors shrink-0"
+        className={`w-8 h-8 flex items-center justify-center border border-ash text-mist transition-colors shrink-0 ${
+          previewUrl ? "hover:border-mist hover:text-mist-2" : "opacity-30 cursor-not-allowed"
+        }`}
       >
         {playing ? (
           <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
@@ -50,7 +57,7 @@ function TrackPreview({ previewUrl }: { previewUrl: string }) {
         )}
       </button>
       <span className="text-xs font-mono text-mist">
-        {playing ? "playing…" : "30s preview"}
+        {!previewUrl ? "no preview available" : playing ? "playing…" : "30s preview"}
       </span>
     </div>
   );
@@ -58,31 +65,29 @@ function TrackPreview({ previewUrl }: { previewUrl: string }) {
 
 // ── Generating state UI ──────────────────────────────────────────────────────
 
-// Deterministic layout — each block has a distinct position, size, and timing
+// Full-width bands — translateY gives unambiguous up/down float
 const RENDER_BLOCKS = [
-  { top: "4%",  h: "22%", w: "78%", delay: "0s",    dur: "2.6s" },
-  { top: "4%",  h: "22%", w: "30%", delay: "1.1s",  dur: "1.9s" },
-  { top: "30%", h: "6%",  w: "55%", delay: "0.3s",  dur: "2.2s" },
-  { top: "40%", h: "28%", w: "92%", delay: "0.7s",  dur: "3.0s" },
-  { top: "40%", h: "14%", w: "42%", delay: "1.5s",  dur: "2.1s" },
-  { top: "72%", h: "10%", w: "65%", delay: "0.2s",  dur: "1.8s" },
-  { top: "84%", h: "14%", w: "88%", delay: "0.9s",  dur: "2.4s" },
-  { top: "56%", h: "5%",  w: "25%", delay: "1.8s",  dur: "1.6s" },
+  { top: "5%",  h: "7%",  delay: "0s",   dur: "3.0s" },
+  { top: "17%", h: "13%", delay: "0.6s", dur: "3.6s" },
+  { top: "34%", h: "4%",  delay: "1.2s", dur: "2.6s" },
+  { top: "42%", h: "16%", delay: "0.3s", dur: "4.0s" },
+  { top: "62%", h: "6%",  delay: "0.9s", dur: "2.8s" },
+  { top: "72%", h: "10%", delay: "1.5s", dur: "3.2s" },
+  { top: "86%", h: "5%",  delay: "0.5s", dur: "2.4s" },
 ];
 
 function GeneratingView() {
   return (
     <div className="w-full aspect-square bg-void border border-ash overflow-hidden relative">
-      {/* Animated blocks — grow/shrink vertically like a canvas being painted */}
+      {/* Full-width bands floating up and down */}
       {RENDER_BLOCKS.map((b, i) => (
         <div
           key={i}
-          className="absolute left-0 origin-top bg-bone"
+          className="absolute left-0 right-0 bg-mist"
           style={{
             top: b.top,
             height: b.h,
-            width: b.w,
-            animation: `build-block ${b.dur} ease-in-out ${b.delay} infinite alternate`,
+            animation: `float-block ${b.dur} ease-in-out ${b.delay} infinite`,
           }}
         />
       ))}
@@ -105,9 +110,18 @@ function GeneratingView() {
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
+interface CostInfo {
+  claudeInputTokens: number;
+  claudeOutputTokens: number;
+  claudeCost: number;
+  falCost: number;
+  total: number;
+}
+
 export default function HomePage() {
   const [state, setState] = useState<AppState>({ phase: "idle" });
   const [selectedStyle, setSelectedStyle] = useState<ArtStyle | null>(null);
+  const [lastCost, setLastCost] = useState<CostInfo | null>(null);
 
   // ── Extract track ──────────────────────────────────────────────────────────
 
@@ -152,6 +166,8 @@ export default function HomePage() {
           setState({ phase: "error", message: data.error ?? "Generation failed." });
           return;
         }
+
+        if (data._cost) setLastCost(data._cost);
 
         const result: GenerationResult = {
           imageUrl: data.imageUrl,
@@ -219,7 +235,26 @@ export default function HomePage() {
           {/* Left: artwork area */}
           <div className="space-y-4">
             {state.phase === "done" ? (
-              <ArtworkDisplay result={state.result} />
+              <>
+                <ArtworkDisplay result={state.result} />
+                {process.env.NODE_ENV === "development" && lastCost && (
+                  <div className="border border-ash p-3 font-mono text-xs space-y-1.5">
+                    <div className="text-mist-2 uppercase tracking-wider text-[10px]">dev · cost estimate</div>
+                    <div className="flex justify-between text-mist">
+                      <span>claude sonnet ({lastCost.claudeInputTokens}↑ {lastCost.claudeOutputTokens}↓ tokens)</span>
+                      <span>${lastCost.claudeCost.toFixed(4)}</span>
+                    </div>
+                    <div className="flex justify-between text-mist">
+                      <span>fal.ai flux/schnell</span>
+                      <span>${lastCost.falCost.toFixed(4)}</span>
+                    </div>
+                    <div className="flex justify-between text-mist-2 border-t border-ash pt-1.5">
+                      <span>total</span>
+                      <span>${lastCost.total.toFixed(4)}</span>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : state.phase === "generating" ? (
               <GeneratingView />
             ) : (
@@ -247,13 +282,11 @@ export default function HomePage() {
               <TrackInput onExtract={handleExtract} isLoading={isExtracting} />
             </div>
 
-            {/* Track card */}
+            {/* Track card + preview player */}
             {currentTrack && (
               <div className="animate-fade-in space-y-3">
                 <TrackCard track={currentTrack} />
-                {currentTrack.previewUrl && (
-                  <TrackPreview previewUrl={currentTrack.previewUrl} />
-                )}
+                <TrackPreview previewUrl={currentTrack.previewUrl} />
               </div>
             )}
 
