@@ -68,3 +68,15 @@ body {
   background: var(--color-ash-2);
   color: var(--color-cream);
 }
+
+/* ── Rendering animation blocks ─────────────────────────────────────────────*/
+@keyframes build-block {
+  0%   { opacity: 0.02; transform: scaleX(0.15); }
+  55%  { opacity: 0.14; transform: scaleX(1); }
+  100% { opacity: 0.03; transform: scaleX(0.6); }
+}
+
+@keyframes scan-line {
+  0%   { top: -1px; }
+  100% { top: 100%; }
+}

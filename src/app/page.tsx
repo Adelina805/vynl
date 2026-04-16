@@ -10,23 +10,46 @@ import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types
 
 // ── Generating state UI ──────────────────────────────────────────────────────
 
+// Deterministic layout — each block has a distinct position, size, and timing
+const RENDER_BLOCKS = [
+  { top: "4%",  h: "22%", w: "78%", delay: "0s",    dur: "2.6s" },
+  { top: "4%",  h: "22%", w: "30%", delay: "1.1s",  dur: "1.9s" },
+  { top: "30%", h: "6%",  w: "55%", delay: "0.3s",  dur: "2.2s" },
+  { top: "40%", h: "28%", w: "92%", delay: "0.7s",  dur: "3.0s" },
+  { top: "40%", h: "14%", w: "42%", delay: "1.5s",  dur: "2.1s" },
+  { top: "72%", h: "10%", w: "65%", delay: "0.2s",  dur: "1.8s" },
+  { top: "84%", h: "14%", w: "88%", delay: "0.9s",  dur: "2.4s" },
+  { top: "56%", h: "5%",  w: "25%", delay: "1.8s",  dur: "1.6s" },
+];
+
 function GeneratingView() {
   return (
-    <div className="w-full aspect-square bg-void border border-ash flex flex-col items-center justify-center gap-6">
-      <div className="space-y-1 w-48">
-        {[100, 70, 85, 55, 90].map((w, i) => (
-          <div
-            key={i}
-            className="h-px bg-ash-2 animate-pulse-slow"
-            style={{
-              width: `${w}%`,
-              animationDelay: `${i * 0.15}s`,
-            }}
-          />
-        ))}
-      </div>
-      <div className="text-xs font-mono text-mist uppercase tracking-widest">
-        Rendering
+    <div className="w-full aspect-square bg-void border border-ash overflow-hidden relative">
+      {/* Animated blocks — build up and dissolve like a canvas being painted */}
+      {RENDER_BLOCKS.map((b, i) => (
+        <div
+          key={i}
+          className="absolute left-0 origin-left bg-mist"
+          style={{
+            top: b.top,
+            height: b.h,
+            width: b.w,
+            animation: `build-block ${b.dur} ease-in-out ${b.delay} infinite alternate`,
+          }}
+        />
+      ))}
+
+      {/* Scan line sweeping top to bottom */}
+      <div
+        className="absolute left-0 right-0 h-px bg-mist-2 opacity-40"
+        style={{ animation: "scan-line 2s linear infinite" }}
+      />
+
+      {/* Label */}
+      <div className="absolute bottom-5 left-5">
+        <span className="text-xs font-mono text-mist uppercase tracking-widest animate-pulse-slow">
+          Rendering
+        </span>
       </div>
     </div>
   );
