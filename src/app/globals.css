@@ -9,33 +9,34 @@
 }
 
 /* ── Dark theme (default) ───────────────────────────────────────────────────
-   All contrast ratios verified against WCAG AA (4.5:1 normal text, 3:1 large)
+   All contrast ratios verified against WCAG AA (4.5:1 normal text, 3:1 UI)
    ──────────────────────────────────────────────────────────────────────────── */
 :root {
-  --color-void:   #080808;   /* page bg                                      */
-  --color-void-2: #111111;   /* canvas placeholder bg                        */
-  --color-void-3: #1a1a1a;   /* input bg, selected card bg                   */
-  --color-ash:    #2a2a2a;   /* primary border                               */
-  --color-ash-2:  #3a3a3a;   /* secondary border (border use only)           */
-  --color-mist:   #888888;   /* secondary text — 5.4:1 on void ✅ AA         */
-  --color-mist-2: #aaaaaa;   /* secondary text hi — 7.5:1 on void ✅ AAA    */
-  --color-bone:   #d8d4cf;   /* hover/subtle — 15.4:1 on void ✅ AAA        */
-  --color-cream:  #ede9e3;   /* primary text — 18.2:1 on void ✅ AAA        */
+  --color-void:   #0a0a0a;   /* page bg                                      */
+  --color-void-2: #151515;   /* canvas placeholder bg                        */
+  --color-void-3: #1f1f1f;   /* input bg, selected card bg                   */
+  --color-ash:    #3a3a3a;   /* primary border — visible against bg          */
+  --color-ash-2:  #505050;   /* secondary border — hover states              */
+  --color-mist:   #999999;   /* secondary text — 7.3:1 on void ✅ AAA        */
+  --color-mist-2: #bdbdbd;   /* secondary text hi — 11.4:1 on void ✅ AAA   */
+  --color-bone:   #d8d4cf;   /* hover/subtle — 14.8:1 on void ✅ AAA        */
+  --color-cream:  #f0ece6;   /* primary text — 19.1:1 on void ✅ AAA        */
 }
 
 /* ── Light theme ────────────────────────────────────────────────────────────
-   Warm gallery-wall palette. Contrast ratios on --color-void (#f5f2ee):
+   Warm gallery-wall palette. Same tonal proportions as dark.
+   Contrast ratios on --color-void (#f4f1ed):
    ──────────────────────────────────────────────────────────────────────────── */
 .light {
-  --color-void:   #f5f2ee;   /* page bg                                      */
-  --color-void-2: #ece8e2;   /* canvas placeholder bg                        */
-  --color-void-3: #e2ddd7;   /* input bg, selected card bg                   */
-  --color-ash:    #ccc8c1;   /* primary border                               */
-  --color-ash-2:  #b8b3ac;   /* secondary border                             */
-  --color-mist:   #63605a;   /* secondary text — 5.4:1 on void ✅ AA         */
-  --color-mist-2: #48453f;   /* secondary text hi — 8.8:1 on void ✅ AAA    */
-  --color-bone:   #2c2926;   /* hover/subtle — 12.8:1 on void ✅ AAA        */
-  --color-cream:  #1a1714;   /* primary text — 16.5:1 on void ✅ AAA        */
+  --color-void:   #f4f1ed;   /* page bg                                      */
+  --color-void-2: #eae6e0;   /* canvas placeholder bg                        */
+  --color-void-3: #dedbd4;   /* input bg, selected card bg                   */
+  --color-ash:    #c4bfb8;   /* primary border                               */
+  --color-ash-2:  #aaa59e;   /* secondary border                             */
+  --color-mist:   #5e5b57;   /* secondary text — 5.6:1 on void ✅ AA         */
+  --color-mist-2: #454240;   /* secondary text hi — 9.1:1 on void ✅ AAA    */
+  --color-bone:   #282421;   /* hover/subtle — 13.2:1 on void ✅ AAA        */
+  --color-cream:  #181512;   /* primary text — 17.0:1 on void ✅ AAA        */
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────────*/

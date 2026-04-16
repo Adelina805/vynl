@@ -16,7 +16,8 @@
       "Bash(find node_modules/@anthropic-ai/sdk -name \"*.d.ts\" -exec grep -l \"thinking\" {} \\\\;)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
