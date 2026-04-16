@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Claude Haiku generates interpretation + image prompt (~1-2s, ~$0.001)
+    // Step 1: Claude Sonnet generates interpretation + image prompt (~2-4s, ~$0.004)
     const userPrompt = buildUserPrompt(track, style);
     const message = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
+      model: "claude-sonnet-4-6",
+      max_tokens: 2048,
       system: PROMPT_SYSTEM,
       messages: [{ role: "user", content: userPrompt }],
     });

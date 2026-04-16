@@ -1,12 +1,60 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import TrackInput from "@/components/TrackInput";
 import TrackCard from "@/components/TrackCard";
 import StyleSelector from "@/components/StyleSelector";
 import ArtworkDisplay from "@/components/ArtworkDisplay";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types";
+
+// ── Track preview player ─────────────────────────────────────────────────────
+
+function TrackPreview({ previewUrl }: { previewUrl: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
+  function toggle() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      audio.volume = 0.7;
+      audio.play().then(() => setPlaying(true)).catch(() => {});
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <audio ref={audioRef} src={previewUrl} onEnded={() => setPlaying(false)} />
+      <button
+        onClick={toggle}
+        aria-label={playing ? "Pause preview" : "Play 30s preview"}
+        className="w-8 h-8 flex items-center justify-center border border-ash text-mist hover:border-mist hover:text-mist-2 transition-colors shrink-0"
+      >
+        {playing ? (
+          <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
+            <rect x="0" y="0" width="3" height="12" />
+            <rect x="7" y="0" width="3" height="12" />
+          </svg>
+        ) : (
+          <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
+            <polygon points="0,0 10,6 0,12" />
+          </svg>
+        )}
+      </button>
+      <span className="text-xs font-mono text-mist">
+        {playing ? "playing…" : "30s preview"}
+      </span>
+    </div>
+  );
+}
 
 // ── Generating state UI ──────────────────────────────────────────────────────
 
@@ -25,11 +73,11 @@ const RENDER_BLOCKS = [
 function GeneratingView() {
   return (
     <div className="w-full aspect-square bg-void border border-ash overflow-hidden relative">
-      {/* Animated blocks — build up and dissolve like a canvas being painted */}
+      {/* Animated blocks — grow/shrink vertically like a canvas being painted */}
       {RENDER_BLOCKS.map((b, i) => (
         <div
           key={i}
-          className="absolute left-0 origin-left bg-mist"
+          className="absolute left-0 origin-top bg-bone"
           style={{
             top: b.top,
             height: b.h,
@@ -201,8 +249,11 @@ export default function HomePage() {
 
             {/* Track card */}
             {currentTrack && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in space-y-3">
                 <TrackCard track={currentTrack} />
+                {currentTrack.previewUrl && (
+                  <TrackPreview previewUrl={currentTrack.previewUrl} />
+                )}
               </div>
             )}
 

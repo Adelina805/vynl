@@ -34,7 +34,7 @@ export default function TrackCard({ track }: TrackCardProps) {
             alt={`${track.album} cover`}
             width={80}
             height={80}
-            className="object-cover grayscale"
+            className="object-cover"
             unoptimized
           />
         </div>

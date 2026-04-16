@@ -16,32 +16,32 @@ export const ART_STYLES: ArtStyleMeta[] = [
   {
     id: "grunge-y2k",
     label: "Grunge Y2K",
-    description: "Digital artifacts. Fractured reality. Millennium anxiety.",
-    palette: ["#d4ff00", "#ff00ff", "#050505", "#1a1a2e"],
+    description: "Digital rot. Chromatic corruption. The internet before it was clean.",
+    palette: ["#d4ff00", "#ff00dd", "#00ffcc", "#0a0a0a"],
   },
   {
     id: "chrome-melancholy",
     label: "Chrome Melancholy",
-    description: "Post-industrial desolation. Cold precision. Reflective silence.",
-    palette: ["#c0c0c0", "#8a9bb5", "#2d3142", "#0a0a0f"],
+    description: "Industrial stillness. Cold surfaces holding grief.",
+    palette: ["#dde4ea", "#6a8fa8", "#1c2535", "#06080e"],
   },
   {
     id: "distressed-editorial",
     label: "Distressed Editorial",
-    description: "Risograph failure. Newsprint. Analog error as beauty.",
-    palette: ["#e63946", "#4ecdc4", "#faf3dd", "#1d1d1d"],
+    description: "Misregistered ink. Newsprint heat. Analog failure as truth.",
+    palette: ["#e63946", "#0ea59e", "#f5f0e2", "#1a1510"],
   },
   {
     id: "cerebral-experimental",
     label: "Cerebral / Experimental",
-    description: "Systems thinking made visual. Order dissolving into noise.",
-    palette: ["#0a1628", "#f5e6c8", "#2c5f8a", "#ffffff"],
+    description: "Geometric systems at the moment they collapse.",
+    palette: ["#060e1e", "#f0e6cc", "#8b3a2a", "#e8e4de"],
   },
   {
     id: "dream-wreckage",
     label: "Dream Wreckage",
-    description: "Surrealist collapse. Melting forms. Beautiful ruin.",
-    palette: ["#ffb347", "#7b2d8b", "#f5b8a0", "#1a0a2e"],
+    description: "Post-dream debris. Colour bleeding into ruin.",
+    palette: ["#ff8c42", "#6b2468", "#f0b896", "#0e0818"],
   },
 ];
 
