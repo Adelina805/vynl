@@ -61,8 +61,15 @@ interface CostInfo {
   llmInputTokens: number | null;
   llmOutputTokens: number | null;
   llmCost: number | null;
+  llmHost?: string;
+  llmApiKeySource?: "LLM_API_KEY" | "OPENAI_API_KEY";
   falCost: number;
+  falFluxModel?: string;
+  falInferenceSteps?: number;
+  falGuidanceScale?: number;
+  falSeed?: number;
   total: number;
+  costNotes?: string[];
 }
 
 export default function HomePage() {
@@ -198,14 +205,49 @@ export default function HomePage() {
                         {lastCost.llmCost !== null ? `$${lastCost.llmCost.toFixed(4)}` : "n/a"}
                       </span>
                     </div>
+                    {(lastCost.llmHost || lastCost.llmApiKeySource) && (
+                      <div className="text-mist text-[10px] leading-snug">
+                        {lastCost.llmHost && (
+                          <div>
+                            LLM host <span className="text-bone">{lastCost.llmHost}</span>
+                          </div>
+                        )}
+                        {lastCost.llmApiKeySource && (
+                          <div>
+                            API key from <span className="text-bone">{lastCost.llmApiKeySource}</span>{" "}
+                            <span className="text-mist-2">(LLM_API_KEY overrides OPENAI_API_KEY)</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="flex justify-between text-mist">
-                      <span>fal.ai flux/schnell</span>
+                      <span>
+                        fal.ai {lastCost.falFluxModel ?? "fal-ai/flux/schnell"}
+                        {lastCost.falInferenceSteps != null
+                          ? ` · ${lastCost.falInferenceSteps} steps`
+                          : ""}
+                        {lastCost.falGuidanceScale != null
+                          ? ` · cfg ${lastCost.falGuidanceScale.toFixed(2)}`
+                          : ""}
+                      </span>
                       <span>${lastCost.falCost.toFixed(4)}</span>
                     </div>
+                    {lastCost.falSeed != null && (
+                      <div className="text-mist text-[10px]">
+                        flux seed {lastCost.falSeed}
+                      </div>
+                    )}
                     <div className="flex justify-between text-mist-2 border-t border-ash pt-1.5">
                       <span>total</span>
                       <span>${lastCost.total.toFixed(4)}</span>
                     </div>
+                    {lastCost.costNotes && lastCost.costNotes.length > 0 && (
+                      <ul className="text-mist text-[10px] leading-relaxed list-disc pl-4 space-y-0.5 pt-1 border-t border-ash">
+                        {lastCost.costNotes.map((note, i) => (
+                          <li key={i}>{note}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
               </>
