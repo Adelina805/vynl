@@ -56,9 +56,11 @@ function GeneratingView() {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 interface CostInfo {
-  claudeInputTokens: number;
-  claudeOutputTokens: number;
-  claudeCost: number;
+  llmProvider: string;
+  llmModel: string;
+  llmInputTokens: number | null;
+  llmOutputTokens: number | null;
+  llmCost: number | null;
   falCost: number;
   total: number;
 }
@@ -186,8 +188,15 @@ export default function HomePage() {
                   <div className="border border-ash p-3 font-mono text-xs space-y-1.5">
                     <div className="text-mist-2 uppercase tracking-wider text-[10px]">dev · cost estimate</div>
                     <div className="flex justify-between text-mist">
-                      <span>claude sonnet ({lastCost.claudeInputTokens}↑ {lastCost.claudeOutputTokens}↓ tokens)</span>
-                      <span>${lastCost.claudeCost.toFixed(4)}</span>
+                      <span>
+                        {lastCost.llmProvider} ({lastCost.llmModel}){" "}
+                        {lastCost.llmInputTokens !== null && lastCost.llmOutputTokens !== null
+                          ? `(${lastCost.llmInputTokens}↑ ${lastCost.llmOutputTokens}↓ tokens)`
+                          : "(usage unavailable)"}
+                      </span>
+                      <span>
+                        {lastCost.llmCost !== null ? `$${lastCost.llmCost.toFixed(4)}` : "n/a"}
+                      </span>
                     </div>
                     <div className="flex justify-between text-mist">
                       <span>fal.ai flux/schnell</span>

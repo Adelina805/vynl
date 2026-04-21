@@ -1,10 +1,7 @@
 import { NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { fal } from "@fal-ai/client";
-import { PROMPT_SYSTEM, buildUserPrompt } from "@/lib/prompts";
+import { createArtDirectionProvider } from "@/lib/llm";
 import type { ArtStyle, SpotifyTrack } from "@/types";
-
-const anthropic = new Anthropic();
 
 export async function POST(request: NextRequest) {
   const falKey = process.env.FAL_KEY;
@@ -28,38 +25,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Claude Sonnet generates interpretation + image prompt (~2-4s, ~$0.004)
-    const userPrompt = buildUserPrompt(track, style);
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: PROMPT_SYSTEM,
-      messages: [{ role: "user", content: userPrompt }],
-    });
+    // Step 1: Provider-agnostic art-direction generation.
+    const artDirectionProvider = createArtDirectionProvider();
+    const { direction, usage } = await artDirectionProvider.generate({ track, style });
+    const interpretation = direction.interpretation;
+    const imagePrompt = direction.imagePrompt;
 
-    const text =
-      message.content.find((b) => b.type === "text")?.text ?? "";
-
-    const interpretationMatch = text.match(
-      /<interpretation>([\s\S]*?)<\/interpretation>/
-    );
-    const imagePromptMatch = text.match(
-      /<image_prompt>([\s\S]*?)<\/image_prompt>/
-    );
-
-    if (!imagePromptMatch) {
-      return Response.json(
-        { error: "Failed to generate image concept." },
-        { status: 500 }
-      );
-    }
-
-    const interpretation = interpretationMatch?.[1].trim() ?? "";
-    const imagePrompt = imagePromptMatch[1].trim();
-
-    // Cost accounting for Claude Sonnet 4.6 ($3/M input, $15/M output)
-    const { input_tokens, output_tokens } = message.usage;
-    const claudeCost = (input_tokens / 1_000_000) * 3 + (output_tokens / 1_000_000) * 15;
     const falCost = 0.003; // flux/schnell flat rate
 
     // Step 2: fal.ai FLUX Schnell generates the image (~2-4s, ~$0.003)
@@ -85,11 +56,13 @@ export async function POST(request: NextRequest) {
       imageUrl,
       interpretation,
       _cost: {
-        claudeInputTokens: input_tokens,
-        claudeOutputTokens: output_tokens,
-        claudeCost: +claudeCost.toFixed(5),
+        llmProvider: usage.provider,
+        llmModel: usage.model,
+        llmInputTokens: usage.inputTokens ?? null,
+        llmOutputTokens: usage.outputTokens ?? null,
+        llmCost: usage.estimatedCostUsd ?? null,
         falCost,
-        total: +(claudeCost + falCost).toFixed(5),
+        total: +((usage.estimatedCostUsd ?? 0) + falCost).toFixed(5),
       },
     });
   } catch (err) {

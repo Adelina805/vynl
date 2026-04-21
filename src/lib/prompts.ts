@@ -44,6 +44,13 @@ FEEL: The morning after a surrealist dream. Beautiful debris.`,
   },
 };
 
+export function getStyleGuidance(style: ArtStyle): {
+  grammar: string;
+  medium: string;
+} {
+  return STYLE_GRAMMAR[style];
+}
+
 export const PROMPT_SYSTEM = `You are VYNL — an art director who translates the emotional and sonic identity of a specific song into a flat 2D abstract graphic artwork.
 
 YOU KNOW MUSIC. Draw on your actual knowledge of this song and artist — their sonic signature, emotional register, cultural moment, production style, lyrical themes. The artwork must feel like THIS song, not a generic version of the style.
@@ -72,7 +79,7 @@ export function buildUserPrompt(track: SpotifyTrack, style: ArtStyle): string {
     "dream-wreckage": "DREAM WRECKAGE",
   };
 
-  const { grammar, medium } = STYLE_GRAMMAR[style];
+  const { grammar, medium } = getStyleGuidance(style);
 
   let prompt = `Create a VYNL artwork for this specific song.
 

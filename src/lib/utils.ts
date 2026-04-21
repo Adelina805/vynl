@@ -23,7 +23,7 @@ export function extractSpotifyTrackId(input: string): string | null {
 }
 
 /**
- * Parse an SVG string and an interpretation from Claude's tagged output.
+ * Parse an SVG string and interpretation from tagged LLM output.
  */
 export function parseGenerationOutput(raw: string): {
   svg: string | null;
