@@ -2,12 +2,63 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import SiteNav from "@/components/SiteNav";
 import { ART_STYLES, type GalleryApiItem } from "@/types";
 
 function styleLabel(id: string): string {
   return ART_STYLES.find((s) => s.id === id)?.label ?? id;
+}
+
+const EXPANDABLE_COLLAPSED_PX = 160;
+
+function ExpandableSection({
+  itemId,
+  children,
+}: {
+  itemId: string;
+  children: ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [showToggle, setShowToggle] = useState(false);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const run = () =>
+      setShowToggle(el.scrollHeight > EXPANDABLE_COLLAPSED_PX + 2);
+    run();
+    const ro = new ResizeObserver(run);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [itemId]);
+
+  return (
+    <div>
+      <div
+        ref={innerRef}
+        className={expanded ? "max-h-none" : "max-h-40 overflow-hidden"}
+      >
+        {children}
+      </div>
+      {showToggle && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 font-mono text-[10px] uppercase tracking-widest text-mist-2 hover:text-cream border border-transparent hover:border-ash px-0 py-1 transition-colors"
+        >
+          {expanded ? "See less" : "See more"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 function GalleryModal({
@@ -54,14 +105,16 @@ function GalleryModal({
         </div>
         <div className="p-6 space-y-5 font-mono text-xs">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2
-                id={`gallery-piece-${item.id}-title`}
-                className="text-sm text-cream uppercase tracking-wider leading-snug"
-              >
-                {payload.track.title}
-              </h2>
-              <p className="text-mist mt-1">{payload.track.artist}</p>
+            <div className="min-w-0 flex-1">
+              <ExpandableSection itemId={item.id}>
+                <h2
+                  id={`gallery-piece-${item.id}-title`}
+                  className="text-sm text-cream uppercase tracking-wider leading-snug"
+                >
+                  {payload.track.title}
+                </h2>
+                <p className="text-mist mt-1">{payload.track.artist}</p>
+              </ExpandableSection>
             </div>
             <button
               type="button"
@@ -72,42 +125,48 @@ function GalleryModal({
             </button>
           </div>
 
-          <div className="space-y-1 text-mist">
-            <div>
-              <span className="text-mist-2 uppercase tracking-wider text-[10px]">
-                Style
-              </span>
-              <p className="text-cream mt-0.5">{styleLabel(payload.style)}</p>
+          <ExpandableSection itemId={item.id}>
+            <div className="space-y-1 text-mist">
+              <div>
+                <span className="text-mist-2 uppercase tracking-wider text-[10px]">
+                  Style
+                </span>
+                <p className="text-cream mt-0.5">{styleLabel(payload.style)}</p>
+              </div>
+              <div>
+                <span className="text-mist-2 uppercase tracking-wider text-[10px]">
+                  Album
+                </span>
+                <p className="text-cream mt-0.5">
+                  {payload.track.album}
+                  {payload.track.releaseYear
+                    ? ` · ${payload.track.releaseYear}`
+                    : ""}
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="text-mist-2 uppercase tracking-wider text-[10px]">
-                Album
-              </span>
-              <p className="text-cream mt-0.5">
-                {payload.track.album}
-                {payload.track.releaseYear
-                  ? ` · ${payload.track.releaseYear}`
-                  : ""}
-              </p>
-            </div>
-          </div>
+          </ExpandableSection>
 
           <div>
             <div className="text-mist-2 uppercase tracking-wider text-[10px] mb-1.5">
               Interpretation
             </div>
-            <p className="text-mist leading-relaxed whitespace-pre-wrap">
-              {payload.interpretation}
-            </p>
+            <ExpandableSection itemId={item.id}>
+              <p className="text-mist leading-relaxed whitespace-pre-wrap">
+                {payload.interpretation}
+              </p>
+            </ExpandableSection>
           </div>
 
           <div>
             <div className="text-mist-2 uppercase tracking-wider text-[10px] mb-1.5">
               Image prompt
             </div>
-            <p className="text-mist leading-relaxed whitespace-pre-wrap break-words">
-              {payload.imagePrompt}
-            </p>
+            <ExpandableSection itemId={item.id}>
+              <p className="text-mist leading-relaxed whitespace-pre-wrap break-words">
+                {payload.imagePrompt}
+              </p>
+            </ExpandableSection>
           </div>
 
           {payload.fluxPrompt && (
@@ -115,9 +174,11 @@ function GalleryModal({
               <div className="text-mist-2 uppercase tracking-wider text-[10px] mb-1.5">
                 Flux prompt
               </div>
-              <p className="text-mist leading-relaxed whitespace-pre-wrap break-words opacity-90">
-                {payload.fluxPrompt}
-              </p>
+              <ExpandableSection itemId={item.id}>
+                <p className="text-mist leading-relaxed whitespace-pre-wrap break-words opacity-90">
+                  {payload.fluxPrompt}
+                </p>
+              </ExpandableSection>
             </div>
           )}
 
@@ -133,26 +194,30 @@ function GalleryModal({
           )}
 
           {payload.cost && (
-            <div className="border-t border-ash pt-4 space-y-2 text-[10px] text-mist">
-              <div className="text-mist-2 uppercase tracking-wider">
+            <div className="border-t border-ash pt-4">
+              <div className="text-mist-2 uppercase tracking-wider text-[10px] mb-1.5">
                 Generation snapshot
               </div>
-              <div className="flex justify-between gap-4">
-                <span>{payload.cost.llmModel}</span>
-                <span>
-                  {payload.cost.llmCost != null
-                    ? `$${payload.cost.llmCost.toFixed(4)}`
-                    : "n/a"}{" "}
-                  LLM
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span>{payload.cost.falFluxModel ?? "fal"}</span>
-                <span>${payload.cost.falCost.toFixed(4)} fal</span>
-              </div>
-              {payload.cost.falSeed != null && (
-                <div>Seed {payload.cost.falSeed}</div>
-              )}
+              <ExpandableSection itemId={item.id}>
+                <div className="space-y-2 text-[10px] text-mist">
+                  <div className="flex justify-between gap-4">
+                    <span>{payload.cost.llmModel}</span>
+                    <span>
+                      {payload.cost.llmCost != null
+                        ? `$${payload.cost.llmCost.toFixed(4)}`
+                        : "n/a"}{" "}
+                      LLM
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>{payload.cost.falFluxModel ?? "fal"}</span>
+                    <span>${payload.cost.falCost.toFixed(4)} fal</span>
+                  </div>
+                  {payload.cost.falSeed != null && (
+                    <div>Seed {payload.cost.falSeed}</div>
+                  )}
+                </div>
+              </ExpandableSection>
             </div>
           )}
 
@@ -234,7 +299,7 @@ export default function GalleryPage() {
             </Link>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 list-none p-0 m-0">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 list-none p-0 m-0">
             {items.map((item) => (
               <li key={item.id}>
                 <button
@@ -248,7 +313,7 @@ export default function GalleryPage() {
                       alt=""
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                       unoptimized
                     />
                   </div>
@@ -265,7 +330,11 @@ export default function GalleryPage() {
       </main>
 
       {selected && (
-        <GalleryModal item={selected} onClose={() => setSelected(null)} />
+        <GalleryModal
+          key={selected.id}
+          item={selected}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
