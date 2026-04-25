@@ -205,7 +205,7 @@ export default function GalleryPage() {
           <h1 className="font-mono text-sm uppercase tracking-[0.25em] text-cream mb-2">
             Gallery
           </h1>
-          <p className="font-mono text-xs text-mist max-w-xl leading-relaxed">
+          <p className="font-mono text-xs text-mist leading-relaxed">
             Every artwork you generate is kept here. Open a piece for full notes,
             prompts, and track details.
           </p>
