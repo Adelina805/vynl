@@ -37,10 +37,11 @@ Generations are copied to disk when possible and listed at `/gallery`. On server
 
 1. Create a Turso database and get a `libsql://…` URL plus token (`turso db tokens create` or the dashboard).
 2. In Vercel → Settings → Environment Variables, set **`DATABASE_URL`**, **`DATABASE_AUTH_TOKEN`**, and your existing API keys for **Production** (and Preview if needed).
-3. **Create tables on Turso:** Prisma Migrate cannot run against `libsql://` (you would see **P1013**). Apply the SQL with the Turso CLI (use your DB name from `turso db list`):
+3. **Create tables on Turso:** Prisma Migrate cannot run against `libsql://` (you would see **P1013**). With `DATABASE_URL` and `DATABASE_AUTH_TOKEN` set in `.env`, run:
    ```bash
-   turso db shell YOUR_DB_NAME < prisma/migrations/20260425010852_init_gallery/migration.sql
+   npm run db:apply-turso
    ```
+   That creates the `GalleryPiece` table (idempotent). Alternatively, use the Turso CLI: `turso db shell YOUR_DB_NAME < prisma/migrations/20260425010852_init_gallery/migration.sql`
    When you add new migrations later, apply each new `migration.sql` the same way (or use a local `file:` DB with `PRISMA_MIGRATE_DATABASE_URL` for `migrate dev`, then pipe the new file to Turso).
 4. Optional: **`npx prisma migrate deploy`** only targets the URL in [`prisma.config.ts`](prisma.config.ts). If `DATABASE_URL` is Turso, the CLI uses a local `file:./data/gallery/migrate.db` instead — that keeps Prisma’s migration history on your machine; it does **not** replace step 3 for the remote database.
 5. Redeploy. The production build does not require `DATABASE_URL`; the **runtime** does. Do **not** use a `file:` SQLite path on Vercel for the **app** — it is not a persistent volume.
