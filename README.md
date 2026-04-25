@@ -15,7 +15,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment
 
-Create `.env.local` in the project root (Next.js loads it automatically). Prisma also reads a root `.env` for `DATABASE_URL` (see [`.env.example`](.env.example)); you can duplicate `DATABASE_URL` into `.env.local` so one file covers the app.
+Use a **single** file, **`.env`**, in the project root. Next.js and Prisma both load it. Copy [`.env.example`](.env.example) to `.env` and fill in values (`.env` is gitignored).
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
@@ -25,13 +25,25 @@ Create `.env.local` in the project root (Next.js loads it automatically). Prisma
 | `LLM_API_KEY` or `OPENAI_API_KEY` | Yes | OpenAI-compatible `/v1/chat/completions` |
 | `LLM_BASE_URL` / `OPENAI_BASE_URL` | No | Defaults to `https://api.openai.com/v1` |
 | `LLM_MODEL` / `OPENAI_MODEL` | No | Defaults to `gpt-4o-mini` |
-| `DATABASE_URL` | Yes | SQLite for the gallery, e.g. `file:./data/gallery/dev.db` |
-| `GALLERY_DATA_ROOT` | No | Override directory for stored images (default `./data/gallery`) |
+| `DATABASE_URL` | Yes | Gallery DB: local `file:./data/gallery/dev.db` **or** remote [Turso](https://turso.tech) `libsql://…` |
+| `DATABASE_AUTH_TOKEN` | With Turso | libSQL auth token (same as `TURSO_AUTH_TOKEN`) |
+| `DATABASE_DRIVER` | No | `libsql` or `sqlite` if URL-based detection is wrong |
+| `GALLERY_DATA_ROOT` | No | Override directory for stored images (default `./data/gallery`; local `file:` DB only) |
 | `GALLERY_ADMIN_SECRET` | No | Bearer token for `DELETE /api/gallery/[id]` (admin cleanup) |
 
-Generations are copied to disk and listed at `/gallery`. Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
+Generations are copied to disk when possible and listed at `/gallery`. On serverless hosts without a writable data directory, rows still save to the database and thumbnails fall back to redirecting to the original fal URL when the file is missing (those CDN links may expire over time). Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
 
-**Vercel:** Configure `DATABASE_URL` (and your other secrets) in the dashboard so they exist at **runtime**. The production build does not need `DATABASE_URL` to finish. A `file:` SQLite path still will not give you a durable gallery on serverless (ephemeral disk); for real deployments use a hosted SQLite-compatible DB (for example Turso) and object storage for images, or run the app on a host with a persistent volume.
+### Deploying the gallery (e.g. Vercel)
+
+1. Create a Turso database and get a `libsql://…` URL plus token (`turso db tokens create` or the dashboard).
+2. In Vercel → Settings → Environment Variables, set **`DATABASE_URL`**, **`DATABASE_AUTH_TOKEN`**, and your existing API keys for **Production** (and Preview if needed).
+3. **Create tables on Turso:** Prisma Migrate cannot run against `libsql://` (you would see **P1013**). Apply the SQL with the Turso CLI (use your DB name from `turso db list`):
+   ```bash
+   turso db shell YOUR_DB_NAME < prisma/migrations/20260425010852_init_gallery/migration.sql
+   ```
+   When you add new migrations later, apply each new `migration.sql` the same way (or use a local `file:` DB with `PRISMA_MIGRATE_DATABASE_URL` for `migrate dev`, then pipe the new file to Turso).
+4. Optional: **`npx prisma migrate deploy`** only targets the URL in [`prisma.config.ts`](prisma.config.ts). If `DATABASE_URL` is Turso, the CLI uses a local `file:./data/gallery/migrate.db` instead — that keeps Prisma’s migration history on your machine; it does **not** replace step 3 for the remote database.
+5. Redeploy. The production build does not require `DATABASE_URL`; the **runtime** does. Do **not** use a `file:` SQLite path on Vercel for the **app** — it is not a persistent volume.
 
 ## Scripts
 

@@ -3,12 +3,31 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+/**
+ * Prisma Migrate / db push only accept `file:` URLs for `provider = "sqlite"`.
+ * `libsql://` (Turso) works at runtime via `@prisma/adapter-libsql` but will
+ * error with P1013 if used here — so we use a local file for the CLI by default.
+ *
+ * Override with PRISMA_MIGRATE_DATABASE_URL=file:./path/to.db
+ */
+function prismaCliDatabaseUrl(): string {
+  const explicit = process.env.PRISMA_MIGRATE_DATABASE_URL?.trim();
+  if (explicit) return explicit;
+
+  const appUrl = process.env.DATABASE_URL?.trim() ?? "";
+  if (appUrl.startsWith("file:")) {
+    return appUrl;
+  }
+
+  return "file:./data/gallery/migrate.db";
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: prismaCliDatabaseUrl(),
   },
 });

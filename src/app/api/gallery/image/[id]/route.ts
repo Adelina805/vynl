@@ -3,6 +3,7 @@ import {
   isSafeGalleryId,
   readGalleryImageFile,
 } from "@/lib/gallery/storage";
+import type { GalleryPayload } from "@/types";
 
 function mimeFromExt(ext: string): string {
   switch (ext.toLowerCase()) {
@@ -30,7 +31,7 @@ export async function GET(
 
   const row = await prisma.galleryPiece.findUnique({
     where: { id },
-    select: { imageExt: true },
+    select: { imageExt: true, payload: true },
   });
 
   if (!row) {
@@ -46,6 +47,11 @@ export async function GET(
       },
     });
   } catch {
+    const payload = row.payload as unknown as GalleryPayload;
+    const remote = payload?.falSourceUrl;
+    if (remote) {
+      return Response.redirect(remote, 302);
+    }
     return new Response("Not found", { status: 404 });
   }
 }

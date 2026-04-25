@@ -23,9 +23,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# secrets (use only `.env`; extra patterns avoid accidental commits)
 .env
+.env*.local
 
 # gallery DB + stored images (local persistence)
 /data/gallery/
