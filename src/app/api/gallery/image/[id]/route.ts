@@ -5,6 +5,8 @@ import {
 } from "@/lib/gallery/storage";
 import type { GalleryPayload } from "@/types";
 
+export const runtime = "nodejs";
+
 function mimeFromExt(ext: string): string {
   switch (ext.toLowerCase()) {
     case "png":

@@ -1,14 +1,27 @@
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
-  sqliteAdapter: PrismaBetterSqlite3 | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sqliteAdapter: any;
 };
 
+/** Vercel / dashboard env values sometimes include wrapping quotes — strip them. */
+function normalizeEnvValue(raw: string | undefined): string {
+  if (raw === undefined) return "";
+  let s = raw.trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL?.trim();
+  const url = normalizeEnvValue(process.env.DATABASE_URL);
   if (!url) {
     throw new Error(
       "DATABASE_URL is not set. Local example: file:./data/gallery/dev.db · Vercel: use Turso (libsql://…) — see README."
@@ -31,15 +44,37 @@ function useLibsqlDriver(url: string): boolean {
 }
 
 function libsqlAuthToken(): string {
-  const token =
-    process.env.DATABASE_AUTH_TOKEN?.trim() ||
-    process.env.TURSO_AUTH_TOKEN?.trim();
+  const token = normalizeEnvValue(
+    process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN
+  );
   if (!token) {
     throw new Error(
       "Remote libSQL/Turso requires DATABASE_AUTH_TOKEN (or TURSO_AUTH_TOKEN)."
     );
   }
   return token;
+}
+
+/**
+ * Load native better-sqlite3 only for local `file:` databases.
+ * Importing it on Vercel (libsql-only deploys) can break serverless bundles.
+ */
+function createBetterSqliteAdapter(url: string) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3") as {
+    PrismaBetterSqlite3: new (
+      a: { url: string },
+      b?: { shadowDatabaseUrl?: string }
+    ) => object;
+  };
+
+  return (
+    globalForPrisma.sqliteAdapter ??
+    new PrismaBetterSqlite3(
+      { url },
+      { shadowDatabaseUrl: ":memory:" }
+    )
+  );
 }
 
 function getPrisma(): PrismaClient {
@@ -55,18 +90,14 @@ function getPrisma(): PrismaClient {
         url,
         authToken: libsqlAuthToken(),
       })
-    : globalForPrisma.sqliteAdapter ??
-      new PrismaBetterSqlite3(
-        { url },
-        { shadowDatabaseUrl: ":memory:" }
-      );
-
-  if (!libsql) {
-    globalForPrisma.sqliteAdapter = adapter as PrismaBetterSqlite3;
-  }
+    : (() => {
+        const a = createBetterSqliteAdapter(url);
+        globalForPrisma.sqliteAdapter = a;
+        return a;
+      })();
 
   const client = new PrismaClient({
-    adapter,
+    adapter: adapter as never,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
   globalForPrisma.prisma = client;

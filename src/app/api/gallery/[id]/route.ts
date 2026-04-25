@@ -4,6 +4,8 @@ import {
   isSafeGalleryId,
 } from "@/lib/gallery/storage";
 
+export const runtime = "nodejs";
+
 function unauthorized(): Response {
   return new Response("Unauthorized", { status: 401 });
 }

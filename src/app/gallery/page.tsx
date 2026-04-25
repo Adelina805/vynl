@@ -176,7 +176,12 @@ export default function GalleryPage() {
       const res = await fetch("/api/gallery");
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Could not load gallery.");
+        const parts = [
+          data.error ?? "Could not load gallery.",
+          typeof data.details === "string" ? data.details : null,
+          typeof data.hint === "string" ? data.hint : null,
+        ].filter(Boolean);
+        setError(parts.join(" — "));
         setItems([]);
         return;
       }

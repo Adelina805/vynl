@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "VYNL — Music to Visual Art",
   description:
     "Every song has a visual identity. Paste a Spotify track link and generate gallery-worthy abstract art from its sonic character.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

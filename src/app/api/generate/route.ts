@@ -6,6 +6,8 @@ import { buildFluxImagePrompt, stableUint32 } from "@/lib/prompts";
 import { persistGalleryPiece } from "@/lib/gallery/persist";
 import type { ArtStyle, GalleryCostSnapshot, SpotifyTrack } from "@/types";
 
+export const runtime = "nodejs";
+
 function clampInt(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(n)));
 }
