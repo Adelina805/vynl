@@ -31,6 +31,8 @@ Create `.env.local` in the project root (Next.js loads it automatically). Prisma
 
 Generations are copied to disk and listed at `/gallery`. Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
 
+**Vercel:** Configure `DATABASE_URL` (and your other secrets) in the dashboard so they exist at **runtime**. The production build does not need `DATABASE_URL` to finish. A `file:` SQLite path still will not give you a durable gallery on serverless (ephemeral disk); for real deployments use a hosted SQLite-compatible DB (for example Turso) and object storage for images, or run the app on a host with a persistent volume.
+
 ## Scripts
 
 | Command | Description |
