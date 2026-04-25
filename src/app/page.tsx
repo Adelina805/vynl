@@ -5,7 +5,7 @@ import TrackInput from "@/components/TrackInput";
 import TrackCard from "@/components/TrackCard";
 import StyleSelector from "@/components/StyleSelector";
 import ArtworkDisplay from "@/components/ArtworkDisplay";
-import ThemeToggle from "@/components/ThemeToggle";
+import SiteNav from "@/components/SiteNav";
 import type { AppState, ArtStyle, SpotifyTrack, GenerationResult } from "@/types";
 
 // ── Generating state UI ──────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ export default function HomePage() {
         if (data._cost) setLastCost(data._cost);
 
         const result: GenerationResult = {
-          imageUrl: data.imageUrl,
+          imageUrl: (data.persistedImageUrl as string | undefined) ?? data.imageUrl,
           interpretation: data.interpretation ?? "",
           style,
           track,
@@ -167,21 +167,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-void text-cream">
-      {/* Header */}
-      <header className="border-b border-ash px-6 py-4 flex items-center justify-between">
-        <button
-          onClick={handleReset}
-          className="font-mono text-sm uppercase tracking-[0.3em] text-cream hover:text-bone transition-colors"
-        >
-          VYNL
-        </button>
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs text-mist">
-            music → visual art
-          </span>
-          <ThemeToggle />
-        </div>
-      </header>
+      <SiteNav mode="home" onLogoClick={handleReset} />
 
       {/* Main layout */}
       <main className="max-w-5xl mx-auto px-6 py-8">

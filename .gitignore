@@ -25,6 +25,10 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+
+# gallery DB + stored images (local persistence)
+/data/gallery/
 
 # vercel
 .vercel
@@ -33,3 +37,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/
+
+/src/generated/prisma

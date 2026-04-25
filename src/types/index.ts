@@ -81,3 +81,36 @@ export type AppState =
   | { phase: "generating"; track: SpotifyTrack; style: ArtStyle }
   | { phase: "done"; result: GenerationResult }
   | { phase: "error"; message: string };
+
+/** Snapshot of dev cost panel / generation metadata stored with gallery rows */
+export interface GalleryCostSnapshot {
+  llmProvider: string;
+  llmModel: string;
+  llmInputTokens: number | null;
+  llmOutputTokens: number | null;
+  llmCost: number | null;
+  falCost: number;
+  falFluxModel?: string;
+  falInferenceSteps?: number;
+  falGuidanceScale?: number;
+  falSeed?: number;
+  total: number;
+  costNotes?: string[];
+}
+
+export interface GalleryPayload {
+  style: ArtStyle;
+  track: SpotifyTrack;
+  interpretation: string;
+  imagePrompt: string;
+  fluxPrompt?: string;
+  falSourceUrl?: string;
+  cost?: GalleryCostSnapshot;
+}
+
+export interface GalleryApiItem {
+  id: string;
+  createdAt: string;
+  imageUrl: string;
+  payload: GalleryPayload;
+}

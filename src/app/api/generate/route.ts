@@ -3,7 +3,8 @@ import { fal } from "@fal-ai/client";
 import { resolveArtDirectionLlmConfig } from "@/lib/llm";
 import { OpenAiCompatibleArtDirectionProvider } from "@/lib/llm/providers/openaiCompatible";
 import { buildFluxImagePrompt, stableUint32 } from "@/lib/prompts";
-import type { ArtStyle, SpotifyTrack } from "@/types";
+import { persistGalleryPiece } from "@/lib/gallery/persist";
+import type { ArtStyle, GalleryCostSnapshot, SpotifyTrack } from "@/types";
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(n)));
@@ -132,29 +133,66 @@ export async function POST(request: NextRequest) {
 
     const isDev = process.env.NODE_ENV === "development";
 
+    const _cost = {
+      llmProvider: usage.provider,
+      llmModel: usage.model,
+      llmInputTokens: usage.inputTokens ?? null,
+      llmOutputTokens: usage.outputTokens ?? null,
+      llmCost,
+      falCost,
+      falFluxModel: fluxModelId,
+      falInferenceSteps: num_inference_steps,
+      falGuidanceScale: guidance_scale,
+      falSeed: seed,
+      total: +((llmCost ?? 0) + falCost).toFixed(5),
+      costNotes,
+      ...(isDev
+        ? {
+            llmHost: llmHostFromBaseUrl(llmCfg.baseUrl),
+            llmApiKeySource: llmCfg.apiKeySource,
+          }
+        : {}),
+    };
+
+    const costForGallery: GalleryCostSnapshot = {
+      llmProvider: _cost.llmProvider,
+      llmModel: _cost.llmModel,
+      llmInputTokens: _cost.llmInputTokens,
+      llmOutputTokens: _cost.llmOutputTokens,
+      llmCost: _cost.llmCost,
+      falCost: _cost.falCost,
+      falFluxModel: _cost.falFluxModel,
+      falInferenceSteps: _cost.falInferenceSteps,
+      falGuidanceScale: _cost.falGuidanceScale,
+      falSeed: _cost.falSeed,
+      total: _cost.total,
+      costNotes: _cost.costNotes,
+    };
+
+    let galleryId: string | undefined;
+    let persistedImageUrl: string | undefined;
+    try {
+      const saved = await persistGalleryPiece({
+        falImageUrl: imageUrl,
+        style,
+        track,
+        interpretation,
+        imagePrompt,
+        fluxPrompt,
+        cost: costForGallery,
+      });
+      galleryId = saved.id;
+      persistedImageUrl = saved.persistedImageUrl;
+    } catch (persistErr) {
+      console.error("[gallery] persist failed:", persistErr);
+    }
+
     return Response.json({
       imageUrl,
       interpretation,
-      _cost: {
-        llmProvider: usage.provider,
-        llmModel: usage.model,
-        llmInputTokens: usage.inputTokens ?? null,
-        llmOutputTokens: usage.outputTokens ?? null,
-        llmCost,
-        falCost,
-        falFluxModel: fluxModelId,
-        falInferenceSteps: num_inference_steps,
-        falGuidanceScale: guidance_scale,
-        falSeed: seed,
-        total: +((llmCost ?? 0) + falCost).toFixed(5),
-        costNotes,
-        ...(isDev
-          ? {
-              llmHost: llmHostFromBaseUrl(llmCfg.baseUrl),
-              llmApiKeySource: llmCfg.apiKeySource,
-            }
-          : {}),
-      },
+      ...(galleryId !== undefined ? { galleryId } : {}),
+      ...(persistedImageUrl !== undefined ? { persistedImageUrl } : {}),
+      _cost,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

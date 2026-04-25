@@ -15,7 +15,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment
 
-Create `.env.local` in the project root (Next.js loads it automatically).
+Create `.env.local` in the project root (Next.js loads it automatically). Prisma also reads a root `.env` for `DATABASE_URL` (see [`.env.example`](.env.example)); you can duplicate `DATABASE_URL` into `.env.local` so one file covers the app.
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
@@ -25,8 +25,11 @@ Create `.env.local` in the project root (Next.js loads it automatically).
 | `LLM_API_KEY` or `OPENAI_API_KEY` | Yes | OpenAI-compatible `/v1/chat/completions` |
 | `LLM_BASE_URL` / `OPENAI_BASE_URL` | No | Defaults to `https://api.openai.com/v1` |
 | `LLM_MODEL` / `OPENAI_MODEL` | No | Defaults to `gpt-4o-mini` |
+| `DATABASE_URL` | Yes | SQLite for the gallery, e.g. `file:./data/gallery/dev.db` |
+| `GALLERY_DATA_ROOT` | No | Override directory for stored images (default `./data/gallery`) |
+| `GALLERY_ADMIN_SECRET` | No | Bearer token for `DELETE /api/gallery/[id]` (admin cleanup) |
 
-Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
+Generations are copied to disk and listed at `/gallery`. Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
 
 ## Scripts
 
