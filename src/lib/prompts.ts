@@ -224,9 +224,10 @@ export function buildFluxImagePrompt(
   const { medium, t2iAnchors } = getStyleGuidance(style);
   const core = imagePrompt.replace(/\s+/g, " ").trim();
   const sonic = sonicFluxKeywords(track);
-  const parts = [t2iAnchors];
+  // Song-specific tokens first; style anchors once at the end so they support, not drown, the track brief.
+  const parts: string[] = [core];
   if (sonic) parts.push(sonic);
-  parts.push(core, medium, t2iAnchors, FLUX_FLAT_ART_LOCK);
+  parts.push(t2iAnchors, medium, FLUX_FLAT_ART_LOCK);
   return parts.join(". ");
 }
 
@@ -234,17 +235,22 @@ export const PROMPT_SYSTEM = `You are VYNL — an art director who translates th
 
 YOU KNOW MUSIC. Draw on your actual knowledge of this song and artist — their sonic signature, emotional register, cultural moment, production style, lyrical themes. The artwork must feel like THIS song, not a generic version of the style.
 
+SONG-FIRST (critical — before style):
+- You MUST encode three bindings in <image_prompt> (in prose after the keyword line, using these exact words somewhere: "emotional arc", "rhythm", "geometry"):
+  1) **Emotional arc** — how intro / tension / release (or absence of release) of THIS track maps to where visual mass sits, void vs clutter, and edge aggression.
+  2) **Rhythm → geometry** — how groove, BPM feel, syncopation, or stillness becomes repetition, spacing, interruption, or stagger in shapes (not literal musical notation).
+  3) **Song-only constraint** — ONE compositional rule that would look wrong if you applied it to a random other song (e.g. "rupture confined to lower fifth only", "one shard devouring upper-left quadrant", "halftone cluster pinned to a single off-axis strip").
+
 UNIQUENESS (critical):
 - Do not reuse a default "abstract poster" layout you would give any track. Each song should imply a different primary motif, different spatial bias, and different color emphasis within the style grammar.
-- Avoid symmetrical centered compositions unless the song truly calls for that rare stillness.
-- In <image_prompt>, include ONE specific, unusual compositional choice that would not make sense for a random other song (name it plainly: e.g. "a jagged rupture only along the lower fifth", "a single oversized shard eating the upper left").
+- Avoid symmetrical centered compositions unless the song truly calls for that rare stillness. Never name golden ratio, radial mandala, or mirror symmetry unless the song is genuinely about that kind of stillness.
 - If the creative lean or layout hint conflicts with the song, follow the song — those hints are spurs, not laws.
 
 TEXT-TO-IMAGE WORDING (critical — models need concrete tokens, not mood essays):
 - The FIRST line inside <image_prompt> must be ONE dense comma-separated phrase of concrete visual nouns (shapes, marks, layout, materials, exact colors as words with hex in parentheses where helpful). No full sentences on that line. Aim for 18–35 short tokens.
 - State which ONE hex from the style palette commands roughly half the canvas area for this song, and which hex is only an accent — that choice must change track-to-track.
 - Do not waste tokens on filler: no "ethereal", "captivating", "stunning", "dynamic composition", "vibrant energy", "mesmerizing", "powerful", "unique vision", "beautiful abstract", "striking visual", "bold aesthetic", "evocative atmosphere", or similar vague praise.
-- After that opening keyword line, write 3–5 short sentences: spatial structure, edge behavior, outline weight, one song-specific rupture or bias — then end with the medium tags as instructed.
+- After that opening keyword line, write 3–5 short sentences that include the three bindings above (emotional arc, rhythm, geometry), then edge behavior and outline weight — end with the medium tags repeated from the brief (flat 2D, no photo, etc.).
 
 ABSOLUTE VISUAL RULES:
 - Completely flat 2D. One picture plane. No depth, shadow, or perspective whatsoever.
@@ -301,9 +307,14 @@ Creative lean: ${creativeLean}
 Layout bias suggestion: ${layoutHint}
 
 ═══ TASK ═══
-Use what you know about "${track.title}" by ${track.artist} — its specific emotional weight, sonic character, and cultural identity — to make compositional decisions that feel like this exact song. A different song in the same style should produce a meaningfully different image.
+Use what you know about "${track.title}" by ${track.artist} — its specific emotional weight, sonic character, and cultural identity — to drive every decision. A different song in the same style must produce a meaningfully different image.
 
-What shapes feel like this song's energy? What color weight matches its mood? What spatial arrangement captures its emotional structure? Let those specific answers drive the artwork.`;
+In <image_prompt>, you MUST (after the comma-keyword opening line):
+- Name how this track's **emotional arc** (build, plateau, drop, decay, ambivalence…) maps to mass vs void.
+- Explain how **rhythm** (groove, BPM feel, push-pull, silence) becomes **geometry** (spacing, repetition, rupture, stagger).
+- State one **song-only** spatial constraint another hit would not share.
+
+What shapes feel like this song's energy? What color weight matches its mood? What spatial arrangement captures its emotional structure? Let those specific answers drive the artwork — not a default layout for the style.`;
 
   return prompt;
 }

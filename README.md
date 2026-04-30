@@ -31,7 +31,9 @@ Use a **single** file, **`.env`**, in the project root. Next.js and Prisma both 
 | `GALLERY_DATA_ROOT` | No | Override directory for stored images (default `./data/gallery`; local `file:` DB only) |
 | `GALLERY_ADMIN_SECRET` | No | Bearer token for `DELETE /api/gallery/[id]` (admin cleanup) |
 
-Generations are copied to disk when possible and listed at `/gallery`. On serverless hosts without a writable data directory, rows still save to the database and thumbnails fall back to redirecting to the original fal URL when the file is missing (those CDN links may expire over time). Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
+Generations are copied to disk when possible and listed at `/gallery`. On serverless hosts without a writable data directory, rows still save to the database and thumbnails fall back to redirecting to the original fal URL when the file is missing (those CDN links may expire over time). Optional tuning (see `src/app/api/generate/route.ts` and `src/lib/llm`): `GENERATION_QUALITY_TIER` (`balanced` default → `fal-ai/flux/dev`, or `fast` → Schnell), `GENERATION_SEED_MODE` (`random` vs `stable` for reproducible seeds), optional JSON body field `variationNonce` to pin a seed, `FAL_FLUX_MODEL`, `FAL_INFERENCE_STEPS`, `FAL_GUIDANCE_SCALE`, `FAL_ESTIMATE_PER_IMAGE_USD`, `LLM_QUALITY_REPAIR_MAX`, `LLM_PRICE_INPUT_PER_1M`, `LLM_PRICE_OUTPUT_PER_1M`, and others noted in dev cost panels.
+
+Run `npm test` to execute prompt-quality unit checks (Node experimental TypeScript strip).
 
 ### Deploying the gallery (e.g. Vercel)
 
@@ -54,6 +56,7 @@ Generations are copied to disk when possible and listed at `/gallery`. On server
 | `npm run build` | Production build |
 | `npm run start` | Run production server |
 | `npm run lint` | ESLint |
+| `npm test` | Prompt-quality checks (Node test runner) |
 
 ## Spotify setup
 

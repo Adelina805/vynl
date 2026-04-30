@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { fal } from "@fal-ai/client";
 import { resolveArtDirectionLlmConfig } from "@/lib/llm";
@@ -7,6 +8,9 @@ import { persistGalleryPiece } from "@/lib/gallery/persist";
 import type { ArtStyle, GalleryCostSnapshot, SpotifyTrack } from "@/types";
 
 export const runtime = "nodejs";
+
+type GenerationQualityTier = "balanced" | "fast";
+type GenerationSeedMode = "random" | "stable";
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(n)));
@@ -26,13 +30,40 @@ function llmHostFromBaseUrl(baseUrl: string): string {
   }
 }
 
+function resolveQualityTier(): GenerationQualityTier {
+  const raw = process.env.GENERATION_QUALITY_TIER?.trim().toLowerCase();
+  if (raw === "fast") return "fast";
+  return "balanced";
+}
+
+function resolveSeedMode(): GenerationSeedMode {
+  const raw = process.env.GENERATION_SEED_MODE?.trim().toLowerCase();
+  if (raw === "stable") return "stable";
+  return "random";
+}
+
 /** fal-ai/* id only — avoids arbitrary strings in subscribe(). */
-function resolveFluxModelId(): string {
+function resolveFluxModelId(tier: GenerationQualityTier): string {
   const raw = process.env.FAL_FLUX_MODEL?.trim();
   if (raw && /^fal-ai\/[a-z0-9][a-z0-9\-/]*$/i.test(raw)) {
     return raw;
   }
-  return "fal-ai/flux/schnell";
+  return tier === "fast" ? "fal-ai/flux/schnell" : "fal-ai/flux/dev";
+}
+
+function resolveVariationSalt(
+  mode: GenerationSeedMode,
+  trackId: string,
+  style: ArtStyle,
+  bodyNonce: string | undefined
+): string {
+  if (bodyNonce !== undefined && bodyNonce.trim().length > 0) {
+    return bodyNonce.trim().slice(0, 256);
+  }
+  if (mode === "stable") {
+    return `stable:${trackId}:${style}`;
+  }
+  return `random:${randomUUID()}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -48,7 +79,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { track, style } = body as { track: SpotifyTrack; style: ArtStyle };
+    const { track, style, variationNonce } = body as {
+      track: SpotifyTrack;
+      style: ArtStyle;
+      /** Optional: same nonce + track + style reproduces the same Flux seed / jitter. */
+      variationNonce?: string;
+    };
 
     if (!track || !style) {
       return Response.json(
@@ -67,10 +103,14 @@ export async function POST(request: NextRequest) {
     const interpretation = direction.interpretation;
     const imagePrompt = direction.imagePrompt;
 
-    const fluxModelId = resolveFluxModelId();
+    const qualityTier = resolveQualityTier();
+    const seedMode = resolveSeedMode();
+    const variationSalt = resolveVariationSalt(seedMode, track.id, style, variationNonce);
+
+    const fluxModelId = resolveFluxModelId(qualityTier);
     const isSchnell = fluxModelId.includes("schnell");
     const maxFluxSteps = isSchnell ? 12 : 48;
-    const defaultFluxSteps = isSchnell ? 8 : 28;
+    const defaultFluxSteps = isSchnell ? 8 : qualityTier === "balanced" ? 30 : 28;
 
     const stepsEnv = process.env.FAL_INFERENCE_STEPS;
     const num_inference_steps = stepsEnv
@@ -81,11 +121,16 @@ export async function POST(request: NextRequest) {
     const guidance_scale =
       guidanceEnv !== undefined && Number.isFinite(Number(guidanceEnv))
         ? Number(guidanceEnv)
-        : 3.45 + (stableUint32(`${track.id}:${style}:cfg`) % 76) / 100;
+        : 3.45 + (stableUint32(`${track.id}:${style}:cfg:${variationSalt}`) % 76) / 100;
 
-    const seed = stableUint32(`${track.id}:${style}:flux`) % 2_147_483_647;
+    const seed =
+      stableUint32(`${track.id}:${style}:flux:${variationSalt}`) % 2_147_483_647;
 
-    const falCost = parsePositiveFloat(process.env.FAL_ESTIMATE_PER_IMAGE_USD, 0.003);
+    const falCostDefault = qualityTier === "balanced" ? 0.025 : 0.003;
+    const falCost = parsePositiveFloat(
+      process.env.FAL_ESTIMATE_PER_IMAGE_USD,
+      falCostDefault
+    );
 
     const fluxPrompt = buildFluxImagePrompt(style, track, imagePrompt);
 
@@ -127,10 +172,10 @@ export async function POST(request: NextRequest) {
       );
     }
     costNotes.push(
-      `FAL: model ${fluxModelId} · ${num_inference_steps} steps (Schnell max 12; dev max 48). Set FAL_FLUX_MODEL=fal-ai/flux/dev for higher quality, slower runs. Flat USD uses FAL_ESTIMATE_PER_IMAGE_USD.`
+      `FAL: tier ${qualityTier} · model ${fluxModelId} · ${num_inference_steps} steps (Schnell max 12; dev max 48). Override with FAL_FLUX_MODEL. Flat USD uses FAL_ESTIMATE_PER_IMAGE_USD (default scales with tier).`
     );
     costNotes.push(
-      "Variety: LLM_TEMPERATURE / LLM_TOP_P affect wording; per-track seed stabilizes Flux for the same song+style."
+      `Seed: mode ${seedMode} — same track+style yields new art each request unless GENERATION_SEED_MODE=stable or you POST variationNonce. LLM quality repairs: LLM_QUALITY_REPAIR_MAX.`
     );
 
     const isDev = process.env.NODE_ENV === "development";
@@ -146,6 +191,9 @@ export async function POST(request: NextRequest) {
       falInferenceSteps: num_inference_steps,
       falGuidanceScale: guidance_scale,
       falSeed: seed,
+      generationSeedMode: seedMode,
+      generationVariationSalt: variationSalt,
+      generationQualityTier: qualityTier,
       total: +((llmCost ?? 0) + falCost).toFixed(5),
       costNotes,
       ...(isDev
@@ -167,6 +215,9 @@ export async function POST(request: NextRequest) {
       falInferenceSteps: _cost.falInferenceSteps,
       falGuidanceScale: _cost.falGuidanceScale,
       falSeed: _cost.falSeed,
+      generationSeedMode: _cost.generationSeedMode,
+      generationVariationSalt: _cost.generationVariationSalt,
+      generationQualityTier: _cost.generationQualityTier,
       total: _cost.total,
       costNotes: _cost.costNotes,
     };

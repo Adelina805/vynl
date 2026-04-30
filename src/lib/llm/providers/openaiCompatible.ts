@@ -1,6 +1,10 @@
-import { buildUserPrompt, PROMPT_SYSTEM } from "@/lib/prompts";
+import {
+  assessImagePromptQuality,
+  formatQualityRepairHint,
+} from "@/lib/llm/artDirectionQuality";
 import { estimateLlmCostUsd } from "@/lib/llm/estimateLlmCost";
 import { parseTaggedArtDirection } from "@/lib/llm/parsing";
+import { buildUserPrompt, PROMPT_SYSTEM } from "@/lib/prompts";
 import type {
   ArtDirectionProvider,
   GenerateArtDirectionInput,
@@ -89,6 +93,14 @@ export class OpenAiCompatibleArtDirectionProvider
     return Number.isFinite(n) && n >= 0 && n <= 8 ? n : 3;
   }
 
+  /** Extra LLM round-trips when image_prompt is generic or structurally weak. */
+  private static maxQualityRepairs(): number {
+    const raw = process.env.LLM_QUALITY_REPAIR_MAX;
+    if (raw === undefined) return 2;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) && n >= 0 && n <= 4 ? n : 2;
+  }
+
   private async postChatCompletion(
     userPrompt: string
   ): Promise<ChatCompletionResponse> {
@@ -109,8 +121,8 @@ export class OpenAiCompatibleArtDirectionProvider
             { role: "user", content: userPrompt },
           ],
           max_tokens: 2048,
-          temperature: OpenAiCompatibleArtDirectionProvider.envFloat("LLM_TEMPERATURE", 0.88),
-          top_p: OpenAiCompatibleArtDirectionProvider.envFloat("LLM_TOP_P", 0.92),
+          temperature: OpenAiCompatibleArtDirectionProvider.envFloat("LLM_TEMPERATURE", 0.82),
+          top_p: OpenAiCompatibleArtDirectionProvider.envFloat("LLM_TOP_P", 0.9),
         }),
       });
 
@@ -148,7 +160,7 @@ export class OpenAiCompatibleArtDirectionProvider
       const repairUser = `${userPrompt}
 
 ---
-The last reply was not parseable. Output ONLY two blocks in order, with nothing else: first <interpretation>…</interpretation> (2–3 liner-note sentences), then <image_prompt>…</image_prompt> (comma keyword line, 3–5 short sentences, medium tags at the end). Use lowercase tag names and an underscore in image_prompt. No markdown code fences, no preamble.`;
+The last reply was not parseable. Output ONLY two blocks in order, with nothing else: first <interpretation>…</interpretation> (2–3 liner-note sentences), then <image_prompt>…</image_prompt> (comma keyword line, then sentences that use the exact words emotional arc, rhythm, and geometry, plus medium tags at the end). Use lowercase tag names and an underscore in image_prompt. No markdown code fences, no preamble.`;
 
       data = await this.postChatCompletion(repairUser);
       content = data.choices?.[0]?.message?.content ?? "";
@@ -157,6 +169,35 @@ The last reply was not parseable. Output ONLY two blocks in order, with nothing 
 
     if (!parsed) {
       throw new Error("LLM response did not include a valid <image_prompt>.");
+    }
+
+    const maxQualityRepairs = OpenAiCompatibleArtDirectionProvider.maxQualityRepairs();
+    let quality = assessImagePromptQuality(parsed.imagePrompt);
+    let qualityAttempts = 0;
+
+    while (!quality.ok && qualityAttempts < maxQualityRepairs) {
+      qualityAttempts += 1;
+      const repairUser = `${userPrompt}
+
+---
+${formatQualityRepairHint(quality.reasons)}
+
+Output ONLY two blocks in order: <interpretation>…</interpretation> then <image_prompt>…</image_prompt>. Tags lowercase; image_prompt has underscore. No markdown fences, no preamble.`;
+
+      data = await this.postChatCompletion(repairUser);
+      content = data.choices?.[0]?.message?.content ?? "";
+      const again = parseTaggedArtDirection(content);
+      if (!again) {
+        continue;
+      }
+      parsed = again;
+      quality = assessImagePromptQuality(parsed.imagePrompt);
+    }
+
+    if (!quality.ok) {
+      throw new Error(
+        `image_prompt failed quality checks after repair: ${quality.reasons.join("; ")}`
+      );
     }
 
     const inputTokens = data.usage?.prompt_tokens;

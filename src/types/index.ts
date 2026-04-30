@@ -94,6 +94,12 @@ export interface GalleryCostSnapshot {
   falInferenceSteps?: number;
   falGuidanceScale?: number;
   falSeed?: number;
+  /** random = new salt each request unless body sends variationNonce; stable = same track+style → same seed */
+  generationSeedMode?: "random" | "stable";
+  /** Salt mixed into Flux seed / CFG jitter for reproducibility or debugging */
+  generationVariationSalt?: string;
+  /** balanced = higher-quality defaults (Flux dev); fast = Schnell-friendly */
+  generationQualityTier?: "balanced" | "fast";
   total: number;
   costNotes?: string[];
 }
