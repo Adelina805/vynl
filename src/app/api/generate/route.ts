@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     const fluxModelId = resolveFluxModelId(qualityTier);
     const isSchnell = fluxModelId.includes("schnell");
     const maxFluxSteps = isSchnell ? 12 : 48;
-    const defaultFluxSteps = isSchnell ? 8 : qualityTier === "balanced" ? 30 : 28;
+    const defaultFluxSteps = isSchnell ? 8 : qualityTier === "balanced" ? 36 : 28;
 
     const stepsEnv = process.env.FAL_INFERENCE_STEPS;
     const num_inference_steps = stepsEnv
@@ -168,11 +168,11 @@ export async function POST(request: NextRequest) {
     );
     if (usage.model.toLowerCase().includes("mini")) {
       costNotes.push(
-        "Richer prompts: try LLM_MODEL=gpt-4o (or gpt-4.1) if gpt-4o-mini keeps compositions samey."
+        "Richer motifs: unset LLM_MODEL mini override — default is gpt-4o unless you pinned mini for cost."
       );
     }
     costNotes.push(
-      `FAL: tier ${qualityTier} · model ${fluxModelId} · ${num_inference_steps} steps (Schnell max 12; dev max 48). Override with FAL_FLUX_MODEL. Flat USD uses FAL_ESTIMATE_PER_IMAGE_USD (default scales with tier).`
+      `FAL: tier ${qualityTier} · model ${fluxModelId} · ${num_inference_steps} steps (Schnell max 12; dev max 48). Override with FAL_FLUX_MODEL (any fal-ai/flux variant you subscribe to, e.g. dev/pro). Flat USD uses FAL_ESTIMATE_PER_IMAGE_USD (default scales with tier).`
     );
     costNotes.push(
       `Seed: mode ${seedMode} — same track+style yields new art each request unless GENERATION_SEED_MODE=stable or you POST variationNonce. LLM quality repairs: LLM_QUALITY_REPAIR_MAX.`

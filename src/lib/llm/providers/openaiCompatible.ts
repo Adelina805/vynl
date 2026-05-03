@@ -1,6 +1,8 @@
 import {
   assessImagePromptQuality,
+  assessInterpretationQuality,
   formatQualityRepairHint,
+  mergeQualityResults,
 } from "@/lib/llm/artDirectionQuality";
 import { estimateLlmCostUsd } from "@/lib/llm/estimateLlmCost";
 import { parseTaggedArtDirection } from "@/lib/llm/parsing";
@@ -96,9 +98,9 @@ export class OpenAiCompatibleArtDirectionProvider
   /** Extra LLM round-trips when image_prompt is generic or structurally weak. */
   private static maxQualityRepairs(): number {
     const raw = process.env.LLM_QUALITY_REPAIR_MAX;
-    if (raw === undefined) return 2;
+    if (raw === undefined) return 4;
     const n = parseInt(raw, 10);
-    return Number.isFinite(n) && n >= 0 && n <= 4 ? n : 2;
+    return Number.isFinite(n) && n >= 0 && n <= 6 ? n : 4;
   }
 
   private async postChatCompletion(
@@ -120,7 +122,7 @@ export class OpenAiCompatibleArtDirectionProvider
             { role: "system", content: PROMPT_SYSTEM },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: 2048,
+          max_tokens: 2568,
           temperature: OpenAiCompatibleArtDirectionProvider.envFloat("LLM_TEMPERATURE", 0.82),
           top_p: OpenAiCompatibleArtDirectionProvider.envFloat("LLM_TOP_P", 0.9),
         }),
@@ -160,7 +162,10 @@ export class OpenAiCompatibleArtDirectionProvider
       const repairUser = `${userPrompt}
 
 ---
-The last reply was not parseable. Output ONLY two blocks in order, with nothing else: first <interpretation>…</interpretation> (2–3 liner-note sentences), then <image_prompt>…</image_prompt> (comma keyword line, then sentences that use the exact words emotional arc, rhythm, and geometry, plus medium tags at the end). Use lowercase tag names and an underscore in image_prompt. No markdown code fences, no preamble.`;
+The last reply was not parseable. Output ONLY two blocks in order, with nothing else:
+1) <interpretation>…</interpretation> — THREE sentences that name "${track.title}" AND ${track.artist.split(",")[0]?.trim()}, and cite verse/intro/bridge/drum/groove/BPM/production detail (facts, not moods).
+2) <image_prompt>…</image_prompt> — line 1 comma-heavy fragments + dominance hex tags; prose after MUST include verbatim substrings emotional arc AND rhythm AND (geometry OR geometric). Close with ONE contrast sentence vs another plausible hit/genre-peer. Repeat medium tags flat 2D.
+Use lowercase tag names; image_prompt contains underscore; no markdown fences, no preamble.`;
 
       data = await this.postChatCompletion(repairUser);
       content = data.choices?.[0]?.message?.content ?? "";
@@ -172,17 +177,21 @@ The last reply was not parseable. Output ONLY two blocks in order, with nothing 
     }
 
     const maxQualityRepairs = OpenAiCompatibleArtDirectionProvider.maxQualityRepairs();
-    let quality = assessImagePromptQuality(parsed.imagePrompt);
+    let combined = mergeQualityResults(
+      assessInterpretationQuality(parsed.interpretation, track),
+      assessImagePromptQuality(parsed.imagePrompt)
+    );
     let qualityAttempts = 0;
 
-    while (!quality.ok && qualityAttempts < maxQualityRepairs) {
+    while (!combined.ok && qualityAttempts < maxQualityRepairs) {
       qualityAttempts += 1;
       const repairUser = `${userPrompt}
 
 ---
-${formatQualityRepairHint(quality.reasons)}
+${formatQualityRepairHint(combined.reasons)}
 
-Output ONLY two blocks in order: <interpretation>…</interpretation> then <image_prompt>…</image_prompt>. Tags lowercase; image_prompt has underscore. No markdown fences, no preamble.`;
+Output ONLY two blocks in order: <interpretation>…</interpretation> then <image_prompt>…</image_prompt>.
+Tags lowercase; image_prompt underscore; prose must include literal emotional arc, rhythm, geometric or geometry wording, plus ONE contrast-vs-another-hit sentence. Prefer newline OR period after comma-heavy opener before prose begins. No markdown fences, no preamble.`;
 
       data = await this.postChatCompletion(repairUser);
       content = data.choices?.[0]?.message?.content ?? "";
@@ -191,12 +200,15 @@ Output ONLY two blocks in order: <interpretation>…</interpretation> then <imag
         continue;
       }
       parsed = again;
-      quality = assessImagePromptQuality(parsed.imagePrompt);
+      combined = mergeQualityResults(
+        assessInterpretationQuality(parsed.interpretation, track),
+        assessImagePromptQuality(parsed.imagePrompt)
+      );
     }
 
-    if (!quality.ok) {
+    if (!combined.ok) {
       throw new Error(
-        `image_prompt failed quality checks after repair: ${quality.reasons.join("; ")}`
+        `art direction failed quality checks after repair: ${combined.reasons.join("; ")}`
       );
     }
 

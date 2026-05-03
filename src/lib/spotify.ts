@@ -47,41 +47,108 @@ async function getAccessToken(): Promise<string> {
   return tokenCache.token;
 }
 
+const MAX_ARTIST_GENRES = 5;
+
+/** Fetch primary artist Spotify genres for liner-note-style context. */
+async function fetchPrimaryArtistGenres(
+  token: string,
+  primaryArtistId: string | undefined
+): Promise<string[]> {
+  if (!primaryArtistId?.trim()) return [];
+
+  try {
+    const res = await fetch(
+      `https://api.spotify.com/v1/artists/${encodeURIComponent(primaryArtistId)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) return [];
+    const artist = await res.json();
+    const genres: unknown = artist.genres;
+    if (!Array.isArray(genres)) return [];
+    return genres
+      .filter((g): g is string => typeof g === "string" && g.trim().length > 0)
+      .slice(0, MAX_ARTIST_GENRES);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeAudioFeatures(af: Record<string, unknown>): AudioFeatures {
+  const out: AudioFeatures = {
+    energy: Number(af.energy),
+    valence: Number(af.valence),
+    tempo: Number(af.tempo),
+    danceability: Number(af.danceability),
+    acousticness: Number(af.acousticness),
+    instrumentalness: Number(af.instrumentalness),
+  };
+
+  if (typeof af.speechiness === "number") {
+    out.speechiness = af.speechiness;
+  }
+  if (typeof af.liveness === "number") {
+    out.liveness = af.liveness;
+  }
+
+  const keyRaw = typeof af.key === "number" ? af.key : null;
+  if (keyRaw !== null && keyRaw >= 0 && keyRaw <= 11) {
+    out.key = keyRaw;
+  }
+
+  if (typeof af.mode === "number" && (af.mode === 0 || af.mode === 1)) {
+    out.mode = af.mode;
+  }
+
+  const ts = typeof af.time_signature === "number" ? af.time_signature : null;
+  if (ts !== null && ts >= 3 && ts <= 7) {
+    out.timeSignature = ts;
+  }
+
+  if (typeof af.loudness === "number") {
+    out.loudness = af.loudness;
+  }
+
+  return out;
+}
+
 export async function fetchTrack(trackId: string): Promise<SpotifyTrack> {
   const token = await getAccessToken();
 
-  const [trackRes, featuresRes] = await Promise.allSettled([
-    fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-    fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-  ]);
+  const trackRes = await fetch(
+    `https://api.spotify.com/v1/tracks/${encodeURIComponent(trackId)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 
-  if (trackRes.status === "rejected" || !trackRes.value.ok) {
-    const status =
-      trackRes.status === "fulfilled" ? trackRes.value.status : "network error";
-    throw new Error(`Could not fetch track (${status}). Check the Spotify URL.`);
+  if (!trackRes.ok) {
+    throw new Error(
+      `Could not fetch track (${trackRes.status}). Check the Spotify URL.`
+    );
   }
 
-  const track = await trackRes.value.json();
+  const track = await trackRes.json();
+
+  const primaryArtistId =
+    typeof track.artists?.[0]?.id === "string"
+      ? (track.artists[0].id as string)
+      : undefined;
+
+  const [featuresRes, genres] = await Promise.all([
+    fetch(
+      `https://api.spotify.com/v1/audio-features/${encodeURIComponent(trackId)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    ),
+    fetchPrimaryArtistGenres(token, primaryArtistId),
+  ]);
 
   let audioFeatures: AudioFeatures | null = null;
-  if (
-    featuresRes.status === "fulfilled" &&
-    featuresRes.value.ok
-  ) {
-    const af = await featuresRes.value.json();
-    if (af && typeof af.energy === "number") {
-      audioFeatures = {
-        energy: af.energy,
-        valence: af.valence,
-        tempo: af.tempo,
-        danceability: af.danceability,
-        acousticness: af.acousticness,
-        instrumentalness: af.instrumentalness,
-      };
+  if (featuresRes.ok) {
+    const af = await featuresRes.json();
+    if (
+      af &&
+      typeof af === "object" &&
+      typeof (af as { energy?: unknown }).energy === "number"
+    ) {
+      audioFeatures = normalizeAudioFeatures(af as Record<string, unknown>);
     }
   }
 
@@ -95,13 +162,18 @@ export async function fetchTrack(trackId: string): Promise<SpotifyTrack> {
   return {
     id: track.id,
     title: track.name,
-    artist: track.artists?.map((a: { name: string }) => a.name).join(", ") ?? "Unknown Artist",
+    artist:
+      track.artists?.map((a: { name: string }) => a.name).join(", ") ??
+      "Unknown Artist",
     album: track.album?.name ?? "Unknown Album",
     releaseYear: (track.album?.release_date ?? "").slice(0, 4),
     popularity: track.popularity ?? 0,
     explicit: track.explicit ?? false,
     albumArt,
-    spotifyUrl: track.external_urls?.spotify ?? `https://open.spotify.com/track/${trackId}`,
+    spotifyUrl:
+      track.external_urls?.spotify ??
+      `https://open.spotify.com/track/${encodeURIComponent(trackId)}`,
+    artistGenres: genres,
     audioFeatures,
   };
 }

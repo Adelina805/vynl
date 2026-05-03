@@ -2,7 +2,7 @@ import { OpenAiCompatibleArtDirectionProvider } from "@/lib/llm/providers/openai
 import type { ArtDirectionProvider } from "@/lib/llm/types";
 
 const DEFAULT_OPENAI_BASE = "https://api.openai.com/v1";
-const DEFAULT_CHAT_MODEL = "gpt-4o-mini";
+const DEFAULT_CHAT_MODEL = "gpt-4o";
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
@@ -10,7 +10,7 @@ function normalizeBaseUrl(url: string): string {
 
 /**
  * Resolves OpenAI-compatible chat credentials. LLM_* wins; otherwise OPENAI_* is used.
- * With only OPENAI_API_KEY set, defaults match the public OpenAI API and gpt-4o-mini.
+ * With only OPENAI_API_KEY set, defaults match the public OpenAI API and gpt-4o (better song-specific motifs than mini).
  */
 export type LlmApiKeySource = "LLM_API_KEY" | "OPENAI_API_KEY";
 

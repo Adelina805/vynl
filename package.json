@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --experimental-strip-types --test src/lib/llm/artDirectionQuality.node-test.ts",
+    "test": "node --experimental-strip-types --test src/lib/llm/artDirectionQuality.node-test.ts src/lib/prompts.node-test.ts",
     "postinstall": "prisma generate",
     "db:apply-turso": "node scripts/apply-gallery-migration.mjs"
   },

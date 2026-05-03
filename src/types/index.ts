@@ -55,6 +55,8 @@ export interface SpotifyTrack {
   explicit: boolean;
   albumArt: string | null;
   spotifyUrl: string;
+  /** Up to five Spotify genres for the primary artist — absent on older persisted payloads. */
+  artistGenres?: string[];
   audioFeatures: AudioFeatures | null;
 }
 
@@ -65,6 +67,16 @@ export interface AudioFeatures {
   danceability: number;
   acousticness: number;
   instrumentalness: number;
+  speechiness?: number;
+  liveness?: number;
+  /** Pitch class 0–11, or omit when unknown (-1 from API). */
+  key?: number;
+  /** 0 minor, 1 major; omit when absent. */
+  mode?: number;
+  /** Estimated meter; omit when unknown (-1 from API). */
+  timeSignature?: number;
+  /** Loudness in dB. */
+  loudness?: number;
 }
 
 export interface GenerationResult {
